@@ -4,6 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "strict": true,
     "lib": [
       "ESNext"
@@ -11,5 +12,8 @@
     "types": [
       "@cloudflare/workers-types"
     ],
+    "paths": {
+      "@lib/*": ["./src/*"]
+    }
   }
 }
