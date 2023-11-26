@@ -8,87 +8,85 @@ export const OP_STATUS: [string, ...string[]] = ['pending', 'rejected', 'execute
 export const OP_TYPE: [string, ...string[]] = ['transfer', 'buy'];
 
 
-const user = sqliteTable('user', {
+export const user = sqliteTable('user', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
-  email: text('').notNull(),
-  password: text('').notNull(),
-  role: text('', { enum: USER_ROLES }).default('user'),
-  full_name: text('').notNull().default(sql`CURRENT_TIMESTAMP`),
-  accounts: text('', { mode: 'json' }),
-  creation_timestamp: integer('', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  remainig_votes: integer('', { mode: 'number' }).notNull().default(0),
+  email: text('email').notNull().unique(),
+  password: text('password').notNull(),
+  role: text('role', { enum: USER_ROLES }).notNull().default('user'),
+  fullName: text('full_name').notNull(),
+  accounts: text('accounts', { mode: 'json' }),
+  creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  remainingVotes: integer('remaining_votes', { mode: 'number' }).notNull().default(0),
   funds: real('funds').notNull().default(0),  
 });
 
-const userPhoto = sqliteTable('user_photo', {
+export const userPhoto = sqliteTable('user_photo', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
-  user_id: integer('').references(() => user.id),
-  photo_uri: text('').notNull(),
-  title: text('').notNull(),
-  token_address: text('').notNull(),
-  token_id: integer('').notNull(),
-  owner_since: integer('', { mode: 'timestamp' }).notNull(),
-  mint_tx: text('').notNull(),
-  last_transfer_tx: text('').notNull(),
-  creation_timestamp: integer('', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  userId: integer('user_id').references(() => user.id),
+  photoUri: text('photo_uri').notNull(),
+  title: text('title').notNull(),
+  tokenAddress: text('token_address').notNull(),
+  tokenId: integer('token_id').notNull(),
+  ownerSince: integer('owner_since', { mode: 'timestamp_ms' }).notNull(),
+  mintTx: text('mint_tx').notNull(),
+  lastTransferTx: text('last_transfer_tx').notNull(),
+  creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-const contest = sqliteTable('contest', {
+export const contest = sqliteTable('contest', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
-  title: text('').notNull(),
-  description: text('').notNull(),
-  status: text('', { enum: CONTEST_STATUS }).default('pending'),
-  init_timestamp: integer('', { mode: 'timestamp' }).notNull(),
-  end_timestamp: integer('', { mode: 'timestamp' }).notNull(),
-  wining_photo_id: integer('').references(() => userPhoto.id),
-  user_draw_winning_id: integer('').references(() => user.id),
-  total_prize: integer('').notNull(),
-  creation_timestamp: integer('', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  status: text('status', { enum: CONTEST_STATUS }).default('pending'),
+  initTimestamp: integer('init_timestamp', { mode: 'timestamp_ms' }).notNull(),
+  endTimestamp: integer('end_timestamp', { mode: 'timestamp_ms' }).notNull(),
+  winingThoto_id: integer('wining_photo_id').references(() => userPhoto.id),
+  userDrawWinningId: integer('user_draw_winning_id').references(() => user.id),
+  totalPrize: real('total_prize'),
+  creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-const contestPhoto = sqliteTable('contest_photo', {
+export const contestPhoto = sqliteTable('contest_photo', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
-  photo_id: integer('').references(() => userPhoto.id),
-  contest_id: integer('').references(() => contest.id),
-  votes: integer('').notNull(),
-  sale_price: integer('').notNull(),
-  creation_timestamp: integer('', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  photoId: integer('photo_id').references(() => userPhoto.id),
+  contestId: integer('contest_id').references(() => contest.id),
+  votes: integer('votes').notNull(),
+  saleIrice: integer('sale_price').notNull(),
+  creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-const logVotes = sqliteTable('log_votes', {
+export const logVotes = sqliteTable('log_votes', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
-  user_id: integer('').references(() => user.id),
-  contest_photo_id: integer('').references(() => contestPhoto.id),
-  votes: integer('').notNull(),
-  execution_timestamp: integer('', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  userId: integer('user_id').references(() => user.id),
+  contestPhotoId: integer('contest_photo_id').references(() => contestPhoto.id),
+  votes: integer('votes').notNull(),
+  executionTimestamp: integer('execution_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-const userVotes = sqliteTable('user_votes', {
+export const userVotes = sqliteTable('user_votes', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
-  user_id: integer('').references(() => user.id),
-  contest_photo_id: integer('').references(() => contestPhoto.id),
-  votes: integer('').notNull(),
-  want_buy: integer('', {mode: "boolean"}).notNull(),
-  execution_timestamp: integer('', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  userId: integer('user_id').references(() => user.id),
+  contestPhotoId: integer('contest_photo_id').references(() => contestPhoto.id),
+  votes: integer('votes').notNull(),
+  wantBuy: integer('want_buy', {mode: "boolean"}).notNull(),
+  executionTimestamp: integer('execution_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-const operations = sqliteTable('operations', {
+export const operations = sqliteTable('operations', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
-  user_id: integer('').references(() => user.id),
-  contest_photo_id: integer('').references(() => contestPhoto.id),
-  
-  type: text('', { enum: OP_TYPE }),
-  status: text('', { enum: OP_STATUS }).default('pending'),
-
-  execution_timestamp: integer('', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  expiration_timestamp: integer('', { mode: 'timestamp' }).notNull(),
-  rejection_reason: text(''),
-  creation_timestamp: integer('', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  userId: integer('user_id').references(() => user.id),
+  contestPhotoId: integer('contest_photo_id').references(() => contestPhoto.id),
+  type: text('type', { enum: OP_TYPE }),
+  status: text('status', { enum: OP_STATUS }).default('pending'),
+  executionTimestamp: integer('execution_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  expirationTimestamp: integer('expiration_timestamp', { mode: 'timestamp_ms' }).notNull(),
+  rejectionReason: text('rejection_reason'),
+  creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-const votesPricing = sqliteTable('votes_pricing', {
-  num_votes: integer('', { mode: 'number' }).primaryKey(),
-  price: integer('').notNull()
+export const votesPricing = sqliteTable('votes_pricing', {
+  numVotes: integer('num_votes', { mode: 'number' }).primaryKey(),
+  price: integer('price').notNull()
 });
 
 
