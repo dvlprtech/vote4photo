@@ -5,7 +5,7 @@ import { desc, eq, lte, sql } from "drizzle-orm";
 import { Context } from "hono"
 import { HTTPException } from "hono/http-exception";
 import jwt from '@tsndr/cloudflare-worker-jwt'
-import { forceExactType } from "@lib/common/utils";
+import { forceExactType } from "@lib/common/mime";
 
 type UserType = typeof user.$inferSelect;
 
