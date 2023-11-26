@@ -3,7 +3,7 @@ import { VERSION } from "@lib/common/version";
 import { Context, Hono } from "hono";
 import { getJsonBody, verifyAdminUser } from '@lib/common/hono-utils';
 import { HTTPException } from 'hono/http-exception';
-import { createContest } from '@lib/services/contest-service';
+import { createContest, getContest, upLoadPhoto, updateContest, votePhoto } from '@lib/services/contest-service';
 
 
 export const route = new Hono<{ Bindings: Bindings }>();
@@ -19,10 +19,55 @@ route.get('/', (c: Context) => {
  * Crea un nuevo concurso
  */
 route.post('', async (c: Context) => {
-    verifyAdminUser(c);
-    const contestData = await getJsonBody(c);
+  verifyAdminUser(c);
+  const contestData = await getJsonBody(c);
 
-    return c.json(await createContest(c, contestData));
-  });
-  
-  
+  return c.json(await createContest(c, contestData));
+});
+
+/**
+ * Crea un nuevo concurso
+ */
+route.post('/:contestId', async (c: Context) => {
+  verifyAdminUser(c);
+  const contestId = parseInt(c.req.param('contestId'));
+  const contestData = await getJsonBody(c);
+
+  return c.json(await updateContest(c, contestId, contestData));
+});
+
+/**
+ * Crea un nuevo concurso
+ */
+route.get('/:contestId', async (c: Context) => {
+  const contestId = parseInt(c.req.param('contestId'));
+
+  return c.json(await getContest(c, contestId));
+});
+
+
+/**
+ * Sube una foto al usuario y al concurso
+ */
+route.post('/:contestId/photo', async (c: Context) => {
+  const userId = c.get('user').id;
+  const contestId = parseInt(c.req.param('contestId'));
+  const body = await c.req.parseBody()
+  const photoData = await upLoadPhoto(c, contestId, userId, body);
+  return c.json({photoData});
+});
+ 
+
+
+/**
+ * Vota por una foto en un concurso
+ */
+route.post('/:contestId/vote', async (c: Context) => {
+  const userId = c.get('user').id;
+  const contestId = parseInt(c.req.param('contestId'));
+  const { photoId, votes } = await c.req.json()
+  const logVote = await votePhoto(c, contestId, userId, photoId, votes);
+  return c.json({...logVote});
+});
+ 
+

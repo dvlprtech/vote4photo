@@ -23,8 +23,10 @@ export const user = sqliteTable('user', {
 export const userPhoto = sqliteTable('user_photo', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
   userId: integer('user_id').references(() => user.id),
-  photoUri: text('photo_uri').notNull(),
+  photoKey: text('photo_key').notNull(),
   title: text('title').notNull(),
+  size: integer('size', { mode: 'number' }).notNull(),
+  md5: text('md5').notNull().unique(),
   tokenAddress: text('token_address').notNull(),
   tokenId: integer('token_id').notNull(),
   ownerSince: integer('owner_since', { mode: 'timestamp_ms' }).notNull(),
@@ -51,7 +53,7 @@ export const contestPhoto = sqliteTable('contest_photo', {
   photoId: integer('photo_id').references(() => userPhoto.id),
   contestId: integer('contest_id').references(() => contest.id),
   votes: integer('votes').notNull(),
-  saleIrice: integer('sale_price').notNull(),
+  salePrice: real('sale_price').notNull(),
   creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
