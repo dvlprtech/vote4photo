@@ -8,50 +8,48 @@ import { handle } from 'hono/cloudflare-pages'
 import { route as accountRoute } from './routes/account'
 import { route as contestRoute } from './routes/contest'
 import { route as operationRoute } from './routes/operation'
+import { route as configRoute } from './routes/config'
 import { hashPassword, verifyPassword } from '@lib/common/crypto-utils'
+import { loadInitData } from '@lib/domain/_local_data'
+import { globalErrorHandler, requestTimeLog, securityFilter } from '@lib/common/hono-utils'
 
 const API_PREFIX = '/api';
 
+const PUBLIC_APIS = [
+  '/api/account/signin',
+  '/api/account/signup',
+  '/api/account/validate',
+  '/api/config/version',
+];
+
+
 const app = new Hono<{ Bindings: Bindings }>().basePath(API_PREFIX);
 
+//app.use('*', compress());
 
-app.use('*', compress());
+app.use('*', requestTimeLog);
+app.use('*', securityFilter({publicPathsPrefix: PUBLIC_APIS}));
 
-app.use('*', async (c: Context, next: Next) => {
-  const start = performance.now();
-  await next();
-  const elapsed = performance.now() - start;
-  const elapsedTxt = `${(elapsed*1000).toFixed(0)} µs`;
-  c.res.headers.set('x-v4p-response-time', elapsedTxt);
-});
+app.onError(globalErrorHandler); 
 
-app.onError((err, c) => {
-  const message = err.message || `${err}`;
-  console.error(message)
-  return c.json({message}, 500);
-})
 
 app.get('/', async (c: Context) => {
-  await test();
+  await test(c.env.DB);
   return c.json({
     app: 'Vote6Photo',
     version: VERSION
   })
-})
+});
 
 app.route(`account`, accountRoute);
 app.route(`operation`, operationRoute);
 app.route(`contest`, contestRoute);
-
+app.route(`config`, configRoute);
 
 export const onRequest = handle(app)
 
-async function test() {
-  console.log('\nHOLA HOLA');
-  const p = 'hola';
-
-  const hp = await hashPassword(p);
-  console.log(hp);
-  console.log('Is pass ', p, '?', await verifyPassword(p, hp));
+async function test(db: D1Database) {
+  console.log('\nTEST');
+  await loadInitData(db);
 }
 
