@@ -10,7 +10,8 @@
     "bcrypt": "^5.1.1",
     "drizzle-orm": "^0.29.0",
     "hono": "^3.10.2",
-    "luxon": "^3.4.4"
+    "luxon": "^3.4.4",
+    "viem": "^1.19.9"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20231121.0",
