@@ -80,8 +80,9 @@ export const operations = sqliteTable('operations', {
   contestPhotoId: integer('contest_photo_id').references(() => contestPhoto.id),
   type: text('type', { enum: OP_TYPE }),
   status: text('status', { enum: OP_STATUS }).default('pending'),
-  executionTimestamp: integer('execution_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  executionTimestamp: integer('execution_timestamp', { mode: 'timestamp_ms' }),
   expirationTimestamp: integer('expiration_timestamp', { mode: 'timestamp_ms' }).notNull(),
+  rejectionTimestamp: integer('rejection_timestamp', { mode: 'timestamp_ms' }),
   rejectionReason: text('rejection_reason'),
   creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
