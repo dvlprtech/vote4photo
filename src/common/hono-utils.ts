@@ -17,7 +17,15 @@ export const requestTimeLog = async (c: Context, next: Next) => {
 export const securityFilter = (config: {publicPathsPrefix?: string[]}) => {
   const publicPrefix = config.publicPathsPrefix || [];
   return async (c: Context, next: Next) => {
-    const pathMatch = publicPrefix.find(prefix => c.req.path.startsWith(prefix));
+    const pathMatch = publicPrefix.find(prefix => {
+      if (c.req.path === prefix) {
+        return true
+      }
+      if (prefix.endsWith('*') && c.req.path.startsWith(prefix.substring(0, prefix.length-2))) {
+        return true;
+      }
+      return false;
+    });
     if (!pathMatch) {
       const token = extractBearerToken(c);
       const payload = await validateJWT(c, token);
@@ -64,4 +72,13 @@ export const globalErrorHandler = (err: unknown, c: Context) => {
   const message = (err as any).message || `${err}`;
   console.error(httpCode, message);
   return c.json({message}, httpCode);
+}
+
+
+export const getUrlBase = (c: Context) => {
+  const firstSlash = c.req.url.indexOf('/', 'https://'.length);
+  if (firstSlash > 0) {
+    return c.req.url.substring(0, firstSlash);
+  }
+  return c.req.url;
 }
