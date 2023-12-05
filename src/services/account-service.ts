@@ -5,7 +5,8 @@ import { desc, eq, lte, sql } from "drizzle-orm";
 import { Context } from "hono"
 import { HTTPException } from "hono/http-exception";
 import jwt from '@tsndr/cloudflare-worker-jwt'
-import { forceExactType } from "@lib/common/mime";
+import { Account } from "viem";
+import { assertValidChain } from "./blockchain-services";
 
 type UserType = typeof user.$inferSelect;
 
@@ -21,28 +22,32 @@ export type JwtPayload = {
     email: string, 
     id: number, 
     role: string, 
-    fullName: string
+    fullName: string,
+    chainId: number,
+    account: Account
 }
 
 const TOKEN_DURATION = 14*3600;
 
-export const jwtFromCredentials = async (c: Context, userEmail: string, password: string) : Promise<string> => {
+export const jwtFromCredentials = async (c: Context, userEmail: string, password: string, chainId:number, account: Account) : Promise<string> => {
+    assertValidChain(c, chainId);
     const db = getConnection(c.env.DB);
     const u = await db.select({password: user.password, id: user.id, role: user.role, fullName: user.fullName}).from(user).where(eq(user.email, userEmail));
     if (u.length === 0) {
-      throw new HTTPException(500, {message: 'Invalid credentials'});
+      throw new HTTPException(500, {message: 'Credenciales no válidas'});
     }
     const userPass = u[0].password;
     const isValid = await verifyPassword(password, userPass);
     if (!isValid) {
-        throw new HTTPException(500, {message: 'Invalid credentials'});
+        throw new HTTPException(500, {message: 'Credenciales no válidas'});
     }  
 
     const jwtPayload = {
         id: u[0].id,
         email: userEmail,
         role: u[0].role!,
-        fullName: u[0].fullName
+        fullName: u[0].fullName,
+        chainId, account
     }
     return generateJWT(jwtPayload, c.env.SECRET);
 }
@@ -55,13 +60,16 @@ const generateJWT = async (payload: JwtPayload, secret: string) : Promise<string
     return token;
 }
 
+export const validateAccount = async (c: Context, chainId: number, account: Account) : Promise<void> => {
+
+}
 
 export const validateJWT = async (c: Context, token: string) : Promise<JwtPayload> => {
     try {
         await jwt.verify(token, c.env.SECRET, {throwError: true});
     } catch(err: unknown) {
         console.warn('Invalid token, reason: ' + err);
-        throw new HTTPException(401, {message: 'Invalid token'});
+        throw new HTTPException(401, {message: 'Token no válido'});
     }
     const jwtData = await jwt.decode<JwtPayload>(token);
     return jwtData.payload as JwtPayload;
@@ -69,17 +77,37 @@ export const validateJWT = async (c: Context, token: string) : Promise<JwtPayloa
 
 export const getProfile = async (c: Context, userid: number) : Promise<Partial<UserType & {photos: any[]}>> => {
     const db = getConnection(c.env.DB);
-    const u = await db.select().from(user).where(eq(user.id, userid));
+    const u = await db.select({
+        id: user.id, 
+        email: user.email, 
+        fullName: user.fullName, 
+        role: user.role, 
+        remainingVotes: user.remainingVotes, 
+        funds: user.funds
+    }).from(user).where(eq(user.id, userid));
     if (u.length === 0) {
-        throw new HTTPException(404, {message: 'Unknown user'});
+        throw new HTTPException(404, {message: 'Usuario desconocido'});
     }
-    const photos = await db.select({id: userPhoto.id, title: userPhoto.title}).from(userPhoto).where(eq(userPhoto.userId, userid));
+    const photos = await db.select({
+        id: userPhoto.id, 
+        title: userPhoto.title,
+        photoKey: userPhoto.photoKey,
+        size: userPhoto.size,
+        ownerSince: userPhoto.ownerSince,
+        account: userPhoto.account,
+        tokenId: userPhoto.tokenId,
+        mintTx: userPhoto.mintTx,
+        lastTransferTx: userPhoto.lastTransferTx
+    }).from(userPhoto).where(eq(userPhoto.userId, userid))
+    .orderBy(desc(userPhoto.ownerSince));
     const userProfile : Partial<UserType & {photos: any[]}> = { ...u[0], photos };
-    delete userProfile.password; 
+    
     return userProfile;
 }
 
-export const createUser = async (c: Context, userData: UserType) : Promise<{id: number, jwt: string}> => {
+export const createUser = async (c: Context, userData: UserType, chainId:number, account: Account) : Promise<{id: number, jwt: string}> => {
+    assertValidChain(c, chainId);
+    
     const db = getConnection(c.env.DB);
 
     userData.role = 'user';
@@ -91,14 +119,15 @@ export const createUser = async (c: Context, userData: UserType) : Promise<{id: 
             id: u[0].id,
             email: userData.email,
             role: userData.role,
-            fullName: userData.fullName
+            fullName: userData.fullName,
+            chainId, account
         }
         const jwt = await generateJWT(jwtPayload, c.env.SECRET);
     
         return {id: jwtPayload.id, jwt};
     } catch(err: unknown) {
         console.warn('Error creating user: ' + err);
-        throw new HTTPException(500, {message: 'Error creating user'});
+        throw new HTTPException(500, {message: 'Error creando el usuario'});
     }
 }
 
@@ -126,7 +155,7 @@ export const updateProfile = async (c: Context, userid: number, profileData: Upd
         return dataToUpdate;
     } catch(err: unknown) {
         console.warn('Error updating user: ' + err);
-        throw new HTTPException(500, {message: 'Error updating user'});
+        throw new HTTPException(500, {message: 'Error actualizando el usuario'});
     }
 }
 
@@ -138,7 +167,7 @@ export const addFunds = async (c: Context<any, any, {}>, userId: number, amount:
 
 const _calculateVotesPrice = async (c: Context<any, any, {}>, amount: number): Promise<number> => {
     if (amount <= 0) {
-        throw new HTTPException(400, {message: 'Invalid amount'});
+        throw new HTTPException(400, {message: 'Número de votos no válido'});
     }
     const db = getConnection(c.env.DB);
     const vp = await db.select({price: votesPricing.price}).from(votesPricing)
@@ -153,7 +182,7 @@ export const buyVotes = async (c: Context<any, any, {}>, userId: number, amount:
     const price = await _calculateVotesPrice(c, amount);
     const currentUser = await db.select({remainigVotes: user.remainingVotes, funds: user.funds}).from(user).where(eq(user.id, userId));
     if (currentUser[0].funds < price) {
-        throw new HTTPException(403, {message: 'Not enough funds. Necessary: ' + price + '€'});
+        throw new HTTPException(403, {message: 'No hay suficientes fondos. Es encesario: ' + price + '€'});
     }
     const votes = currentUser[0].remainigVotes + amount;
     const result = await db.update(user).set({remainingVotes:votes, funds:sql`funds-${price}`}).where(eq(user.id, userId))

@@ -17,11 +17,11 @@ route.get('/', (c: Context) => {
 })
 
 route.post('/signin', async (c: Context) => {
-  const {email, password} = await getJsonBody(c);
+  const {email, password, chainId, account} = await getJsonBody(c);
   if (!email || !password) {
     throw new HTTPException(400, {message: 'Wrong data'});
   }  
-  const token = await jwtFromCredentials(c, email, password);
+  const token = await jwtFromCredentials(c, email, password, chainId, account);
   return c.json({
     token
   });
@@ -39,11 +39,11 @@ route.get('/validate', async (c: Context) => {
 
 route.post('/signup', async (c: Context) => {  
   const challengeMinuteDate = `${Math.floor(Date.now()/1000/60)}`;
-  const userData = await getJsonBody(c);
+  const {chainId, account, ...userData} = await getJsonBody(c);
 
   await _verifyChallenge(c, challengeMinuteDate, userData.email);
 
-  return c.json(await createUser(c, userData));
+  return c.json(await createUser(c, userData, chainId, account));
 })
 
 route.post('/funds', async (c: Context) => {  

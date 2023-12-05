@@ -1,18 +1,20 @@
 <script lang="ts">	
   import '../app.postcss';
-  import Header from "./header.svelte";
-  import Footer from "./footer.svelte";
-
   import { page } from "$app/stores";
-  import ErrorToast from '$lib/ui/error-toast.svelte';
+  import { currentToken, isAuthenticated } from "$lib/store/session-store";
+	import { goto } from '$app/navigation';
+	if ($isAuthenticated) {
+    if ($page.url.pathname === '/') {
+      goto('/app/home');
+    }		
+	} else {
+		goto('/signin');
+	}
+  isAuthenticated.subscribe((value) => {
+    if (!value) {
+      goto('/signin');
+    }
+  });
 
 </script>
-
-<div class="h-screen flex flex-col">
-  <Header />
-  <div class="flex flex-1 flex-col overflow-y-auto py-3 px-4 bg-white dark:bg-slate-600 h-full">
-    <slot />
-    <ErrorToast />
-  </div>
-  <Footer />
-</div>
+<slot />

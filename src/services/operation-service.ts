@@ -65,10 +65,10 @@ export const getOperation = async (c: Context, operationId: number, userId: numb
         // }
     ).from(operations).where(eq(operations.id, operationId));
     if (result.length === 0) {
-        throw new HTTPException(404, {message: 'Operation not found'});
+        throw new HTTPException(404, {message: 'Operación no encontrada'});
     }
     if (userId !== null && result[0].userId !== userId) {
-        throw new HTTPException(503, {message: 'Forbidden'});
+        throw new HTTPException(503, {message: 'Acceso denegado'});
     }
     return {...result[0]};
 }
@@ -78,10 +78,10 @@ export const getDataToSign = async (c: Context, operationId: number, userId: num
     
     const result = await db.select().from(operations).where(eq(operations.id, operationId));
     if (result.length === 0) {
-        throw new HTTPException(404, {message: 'Operation not found'});
+        throw new HTTPException(404, {message: 'Operación no encontrada'});
     }
     if (result[0].userId !== userId) {
-        throw new HTTPException(503, {message: 'Forbidden'});
+        throw new HTTPException(503, {message: 'Acceso denegado'});
     }
     const userData = await db.select().from(user).where(eq(user.id, userId));
     const userAccounts = userData[0].accounts as Address[];
@@ -103,10 +103,10 @@ export const executeWithSignature = async (c: Context, operationId: number, sign
     
     const result = await db.select().from(operations).where(eq(operations.id, operationId));
     if (result.length === 0) {
-        throw new HTTPException(404, {message: 'Operation not found'});
+        throw new HTTPException(404, {message: 'Operación no encontrada'});
     }
     if (result[0].userId !== userId) {
-        throw new HTTPException(503, {message: 'Forbidden'});
+        throw new HTTPException(503, {message: 'Acceso denegado'});
     }
     const userData = await db.select().from(user).where(eq(user.id, userId));
     const userAccounts = userData[0].accounts as Address[];
@@ -137,10 +137,10 @@ export const executeOperation = async (c: Context, operationId: number, userId: 
         expirationTimestamp: operations.expirationTimestamp,
     }).from(operations).where(eq(operations.id, operationId));
     if (result.length === 0) {
-        throw new HTTPException(404, {message: 'Operation not found'});
+        throw new HTTPException(404, {message: 'Operación no encontrada'});
     }
     if (result[0].userId !== userId) {
-        throw new HTTPException(503, {message: 'Forbidden'});
+        throw new HTTPException(503, {message: 'Acceso denegado'});
     }
     if (result[0].status !== 'pending') {
         throw new HTTPException(400, {message: 'Operación no puede ejecutarse'});
@@ -169,10 +169,10 @@ export const rejectOperation = async (c: Context, operationId: number, rejection
         expirationTimestamp: operations.expirationTimestamp,
     }).from(operations).where(eq(operations.id, operationId));
     if (result.length === 0) {
-        throw new HTTPException(404, {message: 'Operation not found'});
+        throw new HTTPException(404, {message: 'Operación no encontrada'});
     }
     if (result[0].userId !== userId) {
-        throw new HTTPException(503, {message: 'Forbidden'});
+        throw new HTTPException(503, {message: 'Acceso denegado'});
     }
     if (result[0].status !== 'pending') {
         throw new HTTPException(400, {message: 'Operación no puede rechazarse'});

@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { text, integer, sqliteTable, real } from "drizzle-orm/sqlite-core";
 
 export const USER_ROLES: [string, ...string[]] = ['user', 'admin'];
-export const CONTEST_STATUS: [string, ...string[]] = ['pending', 'in_progress', 'finished'];
+export const CONTEST_STATUS: [string, ...string[]] = ['pending', 'active', 'finished'];
 export const OP_STATUS: [string, ...string[]] = ['pending', 'rejected', 'executed'];
 export const OP_TYPE: [string, ...string[]] = ['transfer', 'buy'];
 
@@ -14,20 +14,19 @@ export const user = sqliteTable('user', {
   password: text('password').notNull(),
   role: text('role', { enum: USER_ROLES }).notNull().default('user'),
   fullName: text('full_name').notNull(),
-  accounts: text('accounts', { mode: 'json' }),
-  creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   remainingVotes: integer('remaining_votes', { mode: 'number' }).notNull().default(0),
   funds: real('funds').notNull().default(0),  
+  creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const userPhoto = sqliteTable('user_photo', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
   userId: integer('user_id').references(() => user.id),
-  photoKey: text('photo_key').notNull(),
+  photoKey: text('photo_key').unique().notNull(),
   title: text('title').notNull(),
   size: integer('size', { mode: 'number' }).notNull(),
-  md5: text('md5').notNull().unique(),
-  tokenAddress: text('token_address').notNull(),
+  md5: text('md5').notNull().unique(),  
+  account: text('account').notNull(),
   tokenId: integer('token_id').notNull(),
   ownerSince: integer('owner_since', { mode: 'timestamp_ms' }).notNull(),
   mintTx: text('mint_tx').notNull(),
@@ -42,7 +41,7 @@ export const contest = sqliteTable('contest', {
   status: text('status', { enum: CONTEST_STATUS }).default('pending'),
   initTimestamp: integer('init_timestamp', { mode: 'timestamp_ms' }).notNull(),
   endTimestamp: integer('end_timestamp', { mode: 'timestamp_ms' }).notNull(),
-  winingThoto_id: integer('wining_photo_id').references(() => userPhoto.id),
+  winingPhotoId: integer('wining_photo_id').references(() => userPhoto.id),
   userDrawWinningId: integer('user_draw_winning_id').references(() => user.id),
   totalPrize: real('total_prize'),
   creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),

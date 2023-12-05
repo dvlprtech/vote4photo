@@ -50,6 +50,13 @@
       "when": 1701198701928,
       "tag": "0006_nosy_azazel",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1701755065494,
+      "tag": "0007_kind_gorgon",
+      "breakpoints": true
     }
   ]
 }
