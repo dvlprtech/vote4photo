@@ -107,6 +107,7 @@
 	export let openModal = false;
 	export let contestId: number | null = null;
 	export let fees: FeesType;
+	$: contestFee = fees?.CONTEST_NEW_PHOTO || 0;
 	$: buttonIcon = faFileUpload;
 	$: buttonLabel = 'Preparar foto';
 	const photoKey = writable<string>('');
@@ -180,7 +181,7 @@
 				</div>
 				<div>
 					<Label for="comission" class="mb-2">Tasa inscripción</Label>
-					<Input id="comission" name="comission" value={$contestFee} readonly>
+					<Input id="comission" name="comission" value={contestFee} readonly>
 						<span slot="right" class="text-gray-500">€</span>
 					</Input>
 				</div>
