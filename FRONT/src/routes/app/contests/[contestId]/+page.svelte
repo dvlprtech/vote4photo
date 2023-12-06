@@ -99,7 +99,7 @@
 		</Button>
 	</div>
 {/if}
-<NewPhoto {contestId} openModal={openModalPhoto} on:created={photoCreated} on:close={closedPhotoDialog} />
+<NewPhoto {contestId} fees={data.fees} openModal={openModalPhoto} on:created={photoCreated} on:close={closedPhotoDialog} />
 
 
 <style>
