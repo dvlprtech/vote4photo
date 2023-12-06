@@ -5,6 +5,7 @@
 
   import { page } from "$app/stores";
   import ErrorToast from '$lib/ui/error-toast.svelte';
+	import ErrorModal from '$lib/ui/error-modal.svelte';
 
 </script>
 
@@ -12,7 +13,8 @@
   <Header />
   <div class="flex flex-1 flex-col overflow-y-auto py-3 px-4 bg-white dark:bg-slate-600 h-full">
     <slot />
-    <ErrorToast />
   </div>
-  <Footer />
+  <Footer />  
 </div>
+<ErrorModal />
+

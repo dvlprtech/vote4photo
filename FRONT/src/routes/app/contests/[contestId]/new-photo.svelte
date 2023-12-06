@@ -21,6 +21,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import Fa from 'svelte-fa';
 	import { writable } from 'svelte/store';
+	import type { FeesType } from './proxy+page';
 
 	const dispatch = createEventDispatcher();
 
@@ -105,6 +106,7 @@
 
 	export let openModal = false;
 	export let contestId: number | null = null;
+	export let fees: FeesType;
 	$: buttonIcon = faFileUpload;
 	$: buttonLabel = 'Preparar foto';
 	const photoKey = writable<string>('');
@@ -177,9 +179,9 @@
 					</Input>
 				</div>
 				<div>
-					<Label for="photoKey" class="mb-2">Photo key</Label>
-					<Input id="photoKey" name="photoKey" bind:value={$photoKey} disabled>
-						<Fa slot="right" icon={faImage} class="w-5 h-5" />
+					<Label for="comission" class="mb-2">Tasa inscripción</Label>
+					<Input id="comission" name="comission" value={$contestFee} readonly>
+						<span slot="right" class="text-gray-500">€</span>
 					</Input>
 				</div>
 			</div>

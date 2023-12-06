@@ -25,8 +25,7 @@ const PUBLIC_APIS = [
   '/api/photo/*',
   '/api/account/signin',
   '/api/account/signup',
-  '/api/account/validate',
-  '/api/config/version',
+  '/api/account/validate'
 ];
 
 

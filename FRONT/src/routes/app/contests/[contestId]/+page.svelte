@@ -9,7 +9,7 @@
 	import { faCirclePlay, faImages, faPlusSquare, faStar } from "@fortawesome/free-regular-svg-icons";
 	import { faCircle, faPlus, faUpload } from "@fortawesome/free-solid-svg-icons";
 	import MyCard from "$lib/ui/my-card.svelte";
-	import { DATETIME_FULL_TS } from "$lib/utils/date-utils";
+	import { DATETIME_FULL_TS } from "$lib/utils/format-utils";
 	import { DateTime } from "luxon";
 	import { isAdminUser } from "$lib/store/session-store";
 	import type { PageData } from "./$types";

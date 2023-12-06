@@ -49,7 +49,9 @@ route.post('/signup', async (c: Context) => {
 route.post('/funds', async (c: Context) => {  
   const userId = c.get('user').id;
   const { amount } = await getJsonBody(c);
-  
+  if (amount <= 0) {
+    throw new HTTPException(400, {message: 'Cantidad no válida'});
+  }
   return c.json(await addFunds(c, userId, amount))
 })
 
