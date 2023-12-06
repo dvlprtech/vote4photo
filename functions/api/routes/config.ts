@@ -4,12 +4,7 @@ import { Bindings } from '@lib/domain/env';
 import { votesPricing } from '@lib/domain/schema';
 import { Context, Hono } from "hono";
 
-
 export const route = new Hono<{ Bindings: Bindings }>();
-
-route.get('/version', (c: Context) => {
-  return c.text(VERSION);
-})
 
 route.get('/votes_pricing', async (c: Context) => {
   
@@ -18,3 +13,13 @@ route.get('/votes_pricing', async (c: Context) => {
   const pricing = vp.map(p => ({amount: p.numVotes, price: p.price*p.numVotes}));
   return c.json({pricing});
 });
+
+const FEES = {
+  CONTEST: 2,
+  CONTEST_NEW_PHOTO: 10
+}
+
+route.get('/fees', async (c: Context) => {  
+  return c.json(FEES);
+});
+

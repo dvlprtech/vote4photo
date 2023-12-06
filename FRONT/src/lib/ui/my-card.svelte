@@ -7,7 +7,7 @@
 
     export let imgSrc = '';
     export let cardClass = '';
-    export let divImgClass = 'bg-cover h-44';
+    export let divImgClass = 'bg-center bg-cover h-44';
     export let horizontal = false;
     $: imageStyle = `background-image: url(${imgSrc});`;
     $: orientation = horizontal ? 'flex-row w-96' : 'flex-col w-48';

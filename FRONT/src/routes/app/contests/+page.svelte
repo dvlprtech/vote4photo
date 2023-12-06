@@ -12,7 +12,7 @@
 	import NewContest from "./new-contest.svelte";
 	import { DateTime } from "luxon";
 	import { isAdminUser } from "$lib/store/session-store";
-	import { DATETIME_FULL_TS } from "$lib/utils/date-utils";
+	import { DATETIME_FULL_TS } from "$lib/utils/format-utils";
 
 	const openModal = writable(false);
 	const contests = writable<ContestListing[]>([]);
