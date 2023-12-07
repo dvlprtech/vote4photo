@@ -7,10 +7,12 @@ import { Context } from "hono"
 import { HTTPException } from "hono/http-exception";
 import { BodyData } from "hono/utils/body";
 import { DateTime } from "luxon";
-import { getDomain, getMessageToSignForNFTCreation, getNonce, sendMetatransaction } from './blockchain-services';
+import { sendMetatransaction } from './blockchain-services';
 import { ForwardRequest, SignedForwardRequest } from '@lib/domain/blockchain';
 import { getUrlBase } from '@lib/common/hono-utils';
 import { Hex } from 'viem';
+import { FEES } from '@lib/domain/params';
+import { checkAndUseFunds } from './account-service';
 
 type ContestType = typeof contest.$inferSelect;
 type UserPhotoType = typeof userPhoto.$inferSelect;
@@ -21,6 +23,13 @@ type UpdatableContestDataType = {
     description: string, 
     initTimestamp: string,
     endTimestamp: string
+}
+type PhotoNFTData = {
+    photoId: number,
+    contestPhotoId: number,
+    title: string,
+    size: number,
+    photoKey: string
 }
 
 export const getContests = async (c: Context, includeFinished: boolean = false) : Promise<(Partial<ContestType> & {totalPhotos: number})[]> => {
@@ -139,90 +148,21 @@ export const getContest = async (c: Context, contestId: number) : Promise<Partia
     return {...curentContest[0], photos: contestPhotos};
 }
 
-export const uploadPhotoToBucket = async (c: Context, title: string, photo: File) : Promise<Partial<UserPhotoType>> => {
-    const uuidPhoto = crypto.randomUUID();
-    const extension = photo.name.split('.').pop();
-    const r2PhotoName = `${uuidPhoto}.${extension}`;
-    const mimeType = getMimeType(photo.name);
-
-    const r = await c.env.PHOTO_BUCKET.put(r2PhotoName, photo, { 
-      customMetadata: { title, originalName: photo.name },
-      httpMetadata: {contentType: mimeType}
-    });
-    const photoMetadata = {
-      title: r.customMetadata.title,    
-      photoKey: r.key,
-      md5: Buffer.from(r.checksums.md5 as ArrayBuffer).toString('hex'),
-      size: r.size
-    }
-    const photoJson = {
-      name: title,
-      description: "Photo from Vote4Photo",
-      image: `${getUrlBase(c)}/api/photo/${r.key}`,
-      size: r.size,
-      md5: photoMetadata.md5,
-    }
-    await c.env.PHOTO_BUCKET.put(`${uuidPhoto}.json`, JSON.stringify(photoJson, null, 2), { 
-      customMetadata: { title },
-      httpMetadata: {contentType: 'application/json'}
-    });
-    return photoMetadata;
-}
-
-export const preparePhotoNFT = async (c: Context, contestId: number, userId: number, body: BodyData) : Promise<{
-    messageToSign: ForwardRequest,
-    photoKey: string,
-    domain: object
-}> => {
-    const photo = body['photo'] as File;
-    const title = body['title'] as string;
-    if (!photo) {
-        throw new HTTPException(400, {message: 'Falta la foto'});
-    }
-    const photoMetadata = await uploadPhotoToBucket(c, title, photo);
-    const photoHash = photoMetadata.md5!;
-    checkPhotoExists(c, photoHash);
-    const { photoKey } = photoMetadata;
-    const jsonKey = photoKey!.split('.').shift() + '.json';
-    const userAccount = c.get('user').account;
-    const contractAddress = c.env.V4P_CONTRACT;
-    const jsonTokenUrl = `${getUrlBase(c)}/api/photo/${jsonKey}`;
-    const nonce = await getNonce(c, userAccount);
-    const rawMessageToSign = await getMessageToSignForNFTCreation(userAccount, contractAddress, nonce, jsonTokenUrl);
-    const messageToSign = Object.keys(rawMessageToSign).reduce((acc: any, key: string) => {
-        const value = rawMessageToSign[key as keyof ForwardRequest];
-        if (typeof value === 'bigint') {
-            acc[key] = parseInt(value.toString());
-        } else {
-            acc[key] = value;
-        }
-        return acc;    
-    }, {} as Record<keyof ForwardRequest, unknown>);
-    console.log('Message to sign:', rawMessageToSign);
-
-    return {messageToSign, photoKey: photoKey!, domain: await getDomain(c) };
-}
-
-const checkPhotoExists = async (c: Context, photoHash: string) => {
-    const db = getConnection(c.env.DB);
-    const exists = await db.select({existe: sql`true`}).from(userPhoto).where(eq(userPhoto.md5, photoHash));
-    if (exists.length > 0) {
-        throw new HTTPException(400, {message: 'La foto ya existe'});
-    }
-}
 
 export const createPhotoNFT = async (c: Context, contestId: number, userId: number, payload: {
     photoKey: string,
     salePrice: number,
     signedMessage: SignedForwardRequest
-}) : Promise<any> => {
+}) : Promise<PhotoNFTData> => {
     const {signedMessage, photoKey,salePrice} = payload;
     const db = getConnection(c.env.DB);
     const meta = await c.env.PHOTO_BUCKET.head(payload.photoKey) as R2Object;
     if (!meta) {
         throw new HTTPException(404, {message: 'Imagen no encontrada en repositorio'});
     }
-
+    const [existingPhoto] = await db.select({exists: sql`1`}).from(userPhoto).where(eq(userPhoto.photoKey, photoKey));
+    const contestFee = existingPhoto ? FEES.CONTEST : FEES.CONTEST_NEW_PHOTO;
+    checkAndUseFunds(c, contestFee);
     const photoMetadata = {
         title: meta?.customMetadata?.title,    
         photoKey: payload.photoKey,
@@ -258,12 +198,10 @@ export const createPhotoNFT = async (c: Context, contestId: number, userId: numb
         salePrice
     } as ContestPhotoType).returning({id: contestPhoto.id});
 
-    // const photoUrl = `${c.env.BUCKET_URL}/${photoMetadata.photoKey}`;
-//    return {photoId: newPhoto[0].id, contestPhotoId: newPhotoContest[0].id, title, photoUrl};
     return {
         photoId: newPhoto[0].id, 
         contestPhotoId: newPhotoContest[0].id, 
-        title: photoMetadata.title, 
+        title: photoMetadata.title!, 
         size: photoMetadata.size,
         photoKey
     };

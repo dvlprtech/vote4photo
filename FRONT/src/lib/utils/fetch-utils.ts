@@ -1,6 +1,7 @@
 export const ssr = false;
 export const prerender = false;
 
+import { goto } from "$app/navigation";
 import { currentToken } from "$lib/store/session-store";
 import { showError } from "$lib/ui/error-manager";
 import { get } from "svelte/store";
@@ -26,6 +27,10 @@ export const fetchProxy = async (input: RequestInfo, init?: ExtendedRequestInit,
         console.log('Error en la petición: ', input);
         const errorData = await r.json();
         showError(errorData);        
+        if (r.status === 401) {
+            goto('/signin');            
+        }
     }
+    
     return r;
 }

@@ -2,7 +2,7 @@
   	
 	import { page } from "$app/stores";
 	import { goto } from '$app/navigation';
-	import { Button, Card } from "flowbite-svelte";
+	import { Badge, Button, Card } from "flowbite-svelte";
 	import Fa from "svelte-fa";
 	import { faImages, faPlus, faRefresh } from "@fortawesome/free-solid-svg-icons";
 	import { onMount } from "svelte";
@@ -34,15 +34,19 @@
 		console.log('closedNewContestDialog');
 		$openModal = false;
 	}
-	const shadowCard = (status: string) => {
+	const colorByStatus = (status: string) => {
 		switch (status) {
 			case 'active':
-				return 'shadow-green-100';
+				return 'green';
 			case 'pending':
-				return 'shadow-blue-100';
+				return 'blue';
 			default:
-				return 'shadow-gray-100';
+				return 'gray';
 		}
+	}
+
+	const shadowCard = (status: string) => {
+		return `shadow-${colorByStatus(status)}-100`;
 	}
 	
 </script>
@@ -67,10 +71,13 @@
 	{#each $contests as c}
 	<Card class="{shadowCard(c.status)}">				
 		<a href="/app/contests/{c.id}" class="flex flex-col">
-			<div class="flex flex-row gap-1 items-baseline">
-				<Fa icon={faImages} size="lg" class="mr-1" />
-				<span>({c.totalPhotos})</span>
-				<h3 class="text-lg font-semibold tracking-tight mb-2">{c.title}</h3>
+			<div class="flex flex-row gap-2 items-center">
+				<Fa icon={faImages} size="lg" class="mr-1 " color={colorByStatus(c.status)} />				
+				<h3 class="text-lg font-semibold tracking-tight">{c.title}</h3>
+				{#if c.totalPhotos}
+				<Badge rounded class="text-white bg-surface-900 text-xs font-bold">{c.totalPhotos}</Badge>
+				  {/if}
+		
 			</div>
 		  
 		  <p class="mb-3 font-normal">{c.description}</p>

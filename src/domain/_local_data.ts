@@ -5,8 +5,9 @@ import { getConnection } from "./db-conn";
 
 const INIT_DATA = {
     user: [
-        {email: "robertosanchez@uoc.edu", password: "dd091e0de37e0b8e818655e5ea126a6e$WdpUdCxjZG0CVglUgZtyQBP8CL2DGtES6Fi8oSb+rNg=", role: "admin", full_name: "Admin"},
-        {email: "r@r75.es", password: "dd091e0de37e0b8e818655e5ea126a6e$WdpUdCxjZG0CVglUgZtyQBP8CL2DGtES6Fi8oSb+rNg=", role: "user" , full_name: "Rob"}
+        {email: "robertosanchez@uoc.edu", 
+        password: "dd091e0de37e0b8e818655e5ea126a6e$WdpUdCxjZG0CVglUgZtyQBP8CL2DGtES6Fi8oSb+rNg=", role: "admin", fullName: "Admin"},
+        
     ], 
     votesPricing: [
         {num_votes: 1, price: 0.50},

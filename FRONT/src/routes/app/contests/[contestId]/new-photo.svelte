@@ -16,14 +16,45 @@
 		Img,
 		Input,
 		Label,
-		Modal
+		Modal,
+
+		Select
+
 	} from 'flowbite-svelte';
 	import { createEventDispatcher } from 'svelte';
 	import Fa from 'svelte-fa';
 	import { writable } from 'svelte/store';
 	import type { FeesType } from './proxy+page';
+	import { userId } from '$lib/store/session-store';
+	import type { UserPhotoData } from '$lib/domain/account';
 
 	const dispatch = createEventDispatcher();
+
+	const loadUserPhotos = async () => {
+		const r = await fetchProxy(`/api/account/${$userId}`);
+		if (r.status === 200) {
+			const accountData = await r.json();	
+			userFunds = accountData.funds;
+			const photos = accountData.photos as UserPhotoData[];
+			availableUserPhotos = photos.filter((p) => !p.currentContestId);
+		}
+	};
+
+	const photoSelected = (e: Event) => {
+		const photoId = parseInt((e.target as HTMLSelectElement).value);
+		if (!photoId) {
+			contestFee = fees?.CONTEST_NEW_PHOTO;
+			existingPhoto = null;
+			titleProps = {}
+
+		}
+		const photo = availableUserPhotos.find((p) => p.id === photoId);
+		if (photo) {
+			contestFee = fees?.CONTEST;
+			existingPhoto = photo;
+			titleProps = {value:  photo.title, readonly: true}
+		}
+	};
 
 	const sendSignature = async (form: HTMLFormElement) => {
 		const formdata = new FormData(form);
@@ -36,9 +67,7 @@
 		const data = {
 			salePrice,
 			photoKey: $photoKey,
-      signedMessage: {
-        ...messageToSign,
-        signature}
+      		signedMessage: {...messageToSign, signature}
 			
 		};
 		const r = await fetchProxy(`/api/contest/${contestId}/signedphoto`, {
@@ -65,8 +94,8 @@
 		const data = new FormData();
 		data.append('photo', photo);
 		data.append('title', title as string);
-
-		const r = await fetchProxy(`/api/contest/${contestId}/preparephoto`, {
+		const url = existingPhoto ? `/api/photo/prepare/${existingPhoto.id}` : '/api/photo/prepare';
+		const r = await fetchProxy(url, {
 			method: 'POST',
 			body: data
 		});
@@ -74,7 +103,7 @@
 			const responseData = await r.json();
 			messageToSign = responseData.messageToSign as ForwardRequest;
 			domain = responseData.domain;
-      photoKey.set(responseData.photoKey);
+      		photoKey.set(responseData.photoKey);
 			buttonIcon = faFileSignature;
 			buttonLabel = 'Enviar foto y firma';
 			setTimeout(() => {
@@ -107,14 +136,19 @@
 	export let openModal = false;
 	export let contestId: number | null = null;
 	export let fees: FeesType;
+	$: existingPhoto = null as (UserPhotoData | null);
 	$: contestFee = fees?.CONTEST_NEW_PHOTO || 0;
 	$: buttonIcon = faFileUpload;
 	$: buttonLabel = 'Preparar foto';
+	
 	const photoKey = writable<string>('');
 	let messageToSign: ForwardRequest;
 	let domain: object;
 	let fileToUpload: File | null = null;
-
+	let availableUserPhotos : UserPhotoData[] = [];
+	let userFunds = 0;
+	let titleProps = {};
+	loadUserPhotos();
 	const dropHandle = (e: DragEvent) => {
 		e.preventDefault();
 		const files = e.dataTransfer?.files;
@@ -140,15 +174,23 @@
 					<Img src={`/api/photo/${$photoKey}`} class="w-full h-auto" />
 				{:else}
 					<Label for="dropzone" class="mb-2">Foto</Label>
-
-					<Dropzone
-						id="dropzone"
+					{#if availableUserPhotos.length > 0}
+					<Select id="" name="userPhoto" on:change={photoSelected} class="mb-2" placeholder="">
+						<option value="0" selected>Nueva foto</option>
+						{#each availableUserPhotos as photo}
+							<option value={photo.id}>{photo.title}</option>
+						{/each}
+					</Select>
+					{/if}						
+					{#if existingPhoto}
+						<Img src={`/api/photo/${existingPhoto.photoKey}`} class="w-full h-auto" />
+					{:else}
+					<Dropzone id="dropzone"
 						on:drop={dropHandle}
 						on:dragover={(e) => {
 							e.preventDefault();
 						}}
-						on:change={handleChange}
-					>
+						on:change={handleChange}>
 						<Fa icon={faUpload} class="text-3xl text-gray-400 mb-2" />
 						<p class="mb-2 text-sm text-gray-500">
 							<span class="font-semibold"> Pincha para subir una foto</span> o haz drag&drop
@@ -159,6 +201,7 @@
 							<p class="mb-2 text-sm text-gray-600 font-semibold">{fileToUpload.name}</p>
 						{/if}
 					</Dropzone>
+					{/if}
 				{/if}
 			</div>
 			<div class="flex flex-col gap-2">
@@ -169,6 +212,7 @@
 						id="title"
 						name="title"
 						placeholder="Título"
+						{...titleProps}
 						required
 						disabled={!!$photoKey}
 					/>
@@ -179,15 +223,23 @@
 						<span slot="right" class="text-gray-500">€</span>
 					</Input>
 				</div>
-				<div>
-					<Label for="comission" class="mb-2">Tasa inscripción</Label>
-					<Input id="comission" name="comission" value={contestFee} readonly>
-						<span slot="right" class="text-gray-500">€</span>
-					</Input>
+				<div class="flex flex-row gap-2">
+				 	<div>
+						<Label for="funds" class="mb-2">Fondos</Label>
+						<Input id="funds" name="funds" value={userFunds} readonly disabled>
+							<span slot="right" class="text-gray-500">€</span>
+						</Input>
+					</div>
+					<div>
+						<Label for="fee" class="mb-2">Tasa inscripción</Label>
+						<Input id="fee" name="fee" value={contestFee} readonly color={userFunds < contestFee ? 'red' : undefined}>
+							<span slot="right" class="text-gray-500">€</span>
+						</Input>
+					</div>
 				</div>
 			</div>
 			<div class="flex justify-end col-span-2">
-				<Button type="submit" class="w-52" outline={true}>
+				<Button type="submit" class="w-52" outline={true} disabled={userFunds < contestFee}>
 					<Fa icon={buttonIcon} class="w-5 h-5 mr-1" />
 					{buttonLabel}
 				</Button>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { Button, ButtonGroup, Input, Label, Modal, Select, Spinner, TabItem, Tabs } from 'flowbite-svelte';
+	import { Badge, Button, ButtonGroup, Indicator, Input, Label, Modal, Select, Spinner, TabItem, Tabs } from 'flowbite-svelte';
 	import { fetchProxy } from '$lib/utils/fetch-utils';
 	import Fa from 'svelte-fa';
 	import { faMoneyBill1Wave, faMoneyBills, faSave, faStar, faUserAlt } from '@fortawesome/free-solid-svg-icons';	
@@ -201,9 +201,12 @@
 	  </div>
 	</TabItem>
 	<TabItem>
-		<div slot="title" class="flex items-center gap-2">
+		<div slot="title" class="flex items-center gap-2 relative">
 		  <Fa icon={faImages} class="text-lg" />
-		  Fotos
+		  <span class="">Fotos</span>
+		  {#if profile.photos.length > 0}
+		<Badge rounded class="text-white bg-primary-400 text-xs font-bold">{profile.photos.length}</Badge>
+		  {/if}
 		</div>
 
 		<div class="flex flex-row gap-2 flex-wrap photos mt-3">
@@ -214,7 +217,10 @@
 							<li>Token ID: <span class="text-text-900">{photo.tokenId}</span></li>
 							<li class="text-ellipsis">TX: <span class="text-text-900">{ellipsis(photo.lastTransferTx, 20)}</span></li>
 							<li>Tamaño: <span class="text-text-900">{getReadableFileSize(photo.size)}</span></li>
-							<li>Desde: <span class="text-text-900">{localDateTime(photo.ownerSince)}</span></li>
+						    <li>Desde: <span class="text-text-900">{localDateTime(photo.ownerSince)}</span></li>
+							{#if photo.currentContestTitle}
+							<li>Concurso actual: <span class="text-text-900">{photo.currentContestTitle}</span></li>
+							{/if}
 						</ul>
 				</MyCard>
 			{/each}
