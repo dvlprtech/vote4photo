@@ -1,7 +1,7 @@
 import { hashPassword, verifyPassword } from "@lib/common/crypto-utils";
 import { getConnection } from "@lib/domain/db-conn";
-import { user, userPhoto, votesPricing } from "@lib/domain/schema";
-import { desc, eq, lte, sql } from "drizzle-orm";
+import { contest, contestPhoto, user, userPhoto, votesPricing } from "@lib/domain/schema";
+import { and, desc, eq, lte, ne, sql } from "drizzle-orm";
 import { Context } from "hono"
 import { HTTPException } from "hono/http-exception";
 import jwt from '@tsndr/cloudflare-worker-jwt'
@@ -88,7 +88,14 @@ export const getProfile = async (c: Context, userid: number) : Promise<Partial<U
     if (u.length === 0) {
         throw new HTTPException(404, {message: 'Usuario desconocido'});
     }
-    const photos = await db.select({
+    const ct = db.$with('ct').as(db.select({
+                photoId: contestPhoto.photoId,
+                id: contest.id,
+                title: contest.title,                
+            }).from(contest).innerJoin(contestPhoto, eq(contestPhoto.contestId, contest.id))
+                .where(ne(contest.status, 'finished')));
+
+    const photos = await db.with(ct).select({
         id: userPhoto.id, 
         title: userPhoto.title,
         photoKey: userPhoto.photoKey,
@@ -97,8 +104,12 @@ export const getProfile = async (c: Context, userid: number) : Promise<Partial<U
         account: userPhoto.account,
         tokenId: userPhoto.tokenId,
         mintTx: userPhoto.mintTx,
-        lastTransferTx: userPhoto.lastTransferTx
-    }).from(userPhoto).where(eq(userPhoto.userId, userid))
+        lastTransferTx: userPhoto.lastTransferTx,
+        currentContestId: sql`${ct.id}`.as('currentContestId'),
+        currentContestTitle: sql`${ct.title}`.as('currentContestTitle'),
+    }).from(userPhoto)
+        .leftJoin(ct, eq(ct.photoId, userPhoto.id))
+    .where(eq(userPhoto.userId, userid))
     .orderBy(desc(userPhoto.ownerSince));
     const userProfile : Partial<UserType & {photos: any[]}> = { ...u[0], photos };
     
@@ -182,12 +193,31 @@ export const buyVotes = async (c: Context<any, any, {}>, userId: number, amount:
     const price = await _calculateVotesPrice(c, amount);
     const currentUser = await db.select({remainigVotes: user.remainingVotes, funds: user.funds}).from(user).where(eq(user.id, userId));
     if (currentUser[0].funds < price) {
-        throw new HTTPException(403, {message: 'No hay suficientes fondos. Es encesario: ' + price + '€'});
+        throw new HTTPException(403, {message: `No hay suficientes fondos. Es necesario: ${price} €`});
     }
     const votes = currentUser[0].remainigVotes + amount;
     const result = await db.update(user).set({remainingVotes:votes, funds:sql`funds-${price}`}).where(eq(user.id, userId))
         .returning({remainingVotes:user.remainingVotes, funds: user.funds});
     return { ...result[0] };
+}
+  
+/**
+ * 
+ * @param c Comprueba si hay fondos suficcientes apra el cargo a realizar y lo realiza
+ * @param charge 
+ * @returns Los fondos restantes
+ */
+export const checkAndUseFunds = async (c: Context, charge: number): Promise<{funds: number}> => {
+    const db = getConnection(c.env.DB);
+    const userId = c.get('user').id;
+    const [currentUser] = await db.select({remainigVotes: user.remainingVotes, funds: user.funds}).from(user).where(eq(user.id, userId));
+    if (currentUser.funds < charge) {
+        throw new HTTPException(403, {message: `No hay suficientes fondos. Es necesario: ${charge} €`});
+    }
+    
+    const [newFunds] = await db.update(user).set({funds:sql`funds-${charge}`}).where(eq(user.id, userId))
+        .returning({funds: user.funds});
+    return { ...newFunds };
 }
   
 

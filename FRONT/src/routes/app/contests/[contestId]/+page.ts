@@ -19,7 +19,7 @@ export const load: PageLoad = async ({ params }) => {
     }
     const rf = await fetchProxy(`/api/config/fees`);
     if (rf.status === 200) {
-        fees = await r.json();
+        fees = await rf.json();
     }
 	return {
     	contestData, fees

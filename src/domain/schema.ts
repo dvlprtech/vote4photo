@@ -38,7 +38,7 @@ export const contest = sqliteTable('contest', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
   title: text('title').notNull(),
   description: text('description').notNull(),
-  status: text('status', { enum: CONTEST_STATUS }).default('pending'),
+  status: text('status', { enum: CONTEST_STATUS }).default('pending').notNull(),
   initTimestamp: integer('init_timestamp', { mode: 'timestamp_ms' }).notNull(),
   endTimestamp: integer('end_timestamp', { mode: 'timestamp_ms' }).notNull(),
   winingPhotoId: integer('wining_photo_id').references(() => userPhoto.id),

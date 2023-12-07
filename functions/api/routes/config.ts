@@ -1,6 +1,7 @@
 import { VERSION } from "@lib/common/version";
 import { getConnection } from '@lib/domain/db-conn';
 import { Bindings } from '@lib/domain/env';
+import { FEES } from "@lib/domain/params";
 import { votesPricing } from '@lib/domain/schema';
 import { Context, Hono } from "hono";
 
@@ -14,10 +15,6 @@ route.get('/votes_pricing', async (c: Context) => {
   return c.json({pricing});
 });
 
-const FEES = {
-  CONTEST: 2,
-  CONTEST_NEW_PHOTO: 10
-}
 
 route.get('/fees', async (c: Context) => {  
   return c.json(FEES);

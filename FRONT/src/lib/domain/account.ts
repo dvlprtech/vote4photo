@@ -14,7 +14,9 @@ export interface UserPhotoData {
     ownerSince: string,
     account: Address,
     mintTx: Hex,
-    lastTransferTx: Hex  
+    lastTransferTx: Hex,
+    currentContestId?: number,
+    currentContestTitle?: string
 }
 
 export interface AccountData {
