@@ -1,26 +1,16 @@
-import { Buffer } from 'node:buffer';
-import { getMimeType } from '@lib/common/mime';
-import { getConnection } from "@lib/domain/db-conn";
-import { contest, contestPhoto, logVotes, user, userPhoto } from "@lib/domain/schema";
-import { desc, eq, gte, isNotNull, lte, ne, sql } from "drizzle-orm";
-import { Context } from "hono"
-import { HTTPException } from "hono/http-exception";
-import { BodyData } from "hono/utils/body";
-import { DateTime } from "luxon";
-import { ForwardRequest } from '@lib/domain/blockchain';
-import { getDomain, getMessageToSignForNFTCreation, getNonce } from './blockchain-services';
 import { getUrlBase } from '@lib/common/hono-utils';
+import { getMimeType } from '@lib/common/mime';
+import { ForwardRequest } from '@lib/domain/blockchain';
+import { getConnection } from "@lib/domain/db-conn";
+import { contest, contestPhoto, userPhoto } from "@lib/domain/schema";
+import { eq, sql } from "drizzle-orm";
+import { Context } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { Buffer } from 'node:buffer';
+import { getDomain, getMessageToSignForNFTCreation, getNonce } from './blockchain-services';
 
-type ContestType = typeof contest.$inferSelect;
+
 type UserPhotoType = typeof userPhoto.$inferSelect;
-type ContestPhotoType = typeof contestPhoto.$inferSelect;
-
-type UpdatableContestDataType = {
-    title: string,
-    description: string, 
-    initTimestamp: string,
-    duration: number
-}
 
 /**
  * 
@@ -50,12 +40,12 @@ export const getPhoto = async (c: Context, photoKey: string) : Promise<Response>
 export const deleteOrphanPhoto = async (c: Context, photoKey: string) : Promise<{photoKey: string}> => {
     const img = await c.env.PHOTO_BUCKET.head(photoKey);
     if (!img) {
-        throw new HTTPException(404, {message: 'Foto no existe: ' + photoKey});
+        return {photoKey: '****'}; // Silent error        
     }
     const db = getConnection(c.env.DB);
     const photoDB = await db.select({existe: sql`true`}).from(userPhoto).where(eq(userPhoto.photoKey, photoKey));
-    if (photoDB.length > 0) {
-        throw new HTTPException(403, {message: 'Foto no puede ser eliminada'});
+    if (photoDB.length > 0) {        
+        return {photoKey: '****'}; // Silent error
     }
     const jsonKey = photoKey.split('.').shift() + '.json';
     await c.env.PHOTO_BUCKET.delete(photoKey);
@@ -65,25 +55,20 @@ export const deleteOrphanPhoto = async (c: Context, photoKey: string) : Promise<
 }
 
 
-export const preparePhotoNFT = async (c: Context, photoId: number) : Promise<{
+export const preparePhotoNFT = async (c: Context) : Promise<{
     messageToSign: ForwardRequest,
     photoKey: string,
     domain: object
 }> => {
-    let photoMetadata : Partial<UserPhotoType>;
-    if (photoId) {
-        photoMetadata = await getMetadataPhoto(c, photoId);
-    } else {
-        const body = await c.req.parseBody();
-        const photo = body['photo'] as File;
-        const title = body['title'] as string;
-        if (!photo) {
-            throw new HTTPException(400, {message: 'Falta la foto'});
-        }
-        photoMetadata = await uploadPhotoToBucket(c, title, photo);
-        const photoHash = photoMetadata.md5!;
-        checkPhotoExists(c, photoHash);
+    const body = await c.req.parseBody();
+    const title = body['title'] as string;
+    const photo = body['photo'] as File;
+    if (!photo) {
+        throw new HTTPException(400, {message: 'Falta la foto'});
     }
+    const photoMetadata = await uploadPhotoToBucket(c, title, photo);
+    const photoHash = photoMetadata.md5!;
+    checkPhotoExists(c, photoHash);
     const { photoKey } = photoMetadata;
     const jsonKey = photoKey!.split('.').shift() + '.json';
     const userAccount = c.get('user').account;
@@ -143,7 +128,7 @@ const uploadPhotoToBucket = async (c: Context, title: string, photo: File) : Pro
     return photoMetadata;
 }
 
-const getMetadataPhoto = async (c: Context, photoId: number) : Promise<Partial<UserPhotoType>> => {
+const getMetadataPhoto = async (c: Context, photoId: number, userId: number) : Promise<Partial<UserPhotoType>> => {
     const db = getConnection(c.env.DB);
     const photo = await db.select({
         photoKey: userPhoto.photoKey, 
@@ -155,7 +140,7 @@ const getMetadataPhoto = async (c: Context, photoId: number) : Promise<Partial<U
     if (photo.length === 0) {
         throw new HTTPException(404, {message: 'Foto no encontrada'});
     }
-    if (photo[0].userId !== c.get('user').id) {
+    if (photo[0].userId !== userId) {
         throw new HTTPException(403, {message: 'Foto no pertenece al usuario'});
     }
     return photo[0];

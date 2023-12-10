@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { getMimeType } from '@lib/common/mime';
 import { getConnection } from "@lib/domain/db-conn";
 import { contest, contestPhoto, logVotes, user, userPhoto } from "@lib/domain/schema";
-import { desc, eq, gte, isNotNull, lte, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, lte, ne, sql } from "drizzle-orm";
 import { Context } from "hono"
 import { HTTPException } from "hono/http-exception";
 import { BodyData } from "hono/utils/body";
@@ -149,7 +149,7 @@ export const getContest = async (c: Context, contestId: number) : Promise<Partia
 }
 
 
-export const createPhotoNFT = async (c: Context, contestId: number, userId: number, payload: {
+export const participateInContestWithNFT = async (c: Context, contestId: number, userId: number, payload: {
     photoKey: string,
     salePrice: number,
     signedMessage: SignedForwardRequest
@@ -160,8 +160,14 @@ export const createPhotoNFT = async (c: Context, contestId: number, userId: numb
     if (!meta) {
         throw new HTTPException(404, {message: 'Imagen no encontrada en repositorio'});
     }
-    const [existingPhoto] = await db.select({exists: sql`1`}).from(userPhoto).where(eq(userPhoto.photoKey, photoKey));
+    const [existingPhoto] = await db.select({
+        id: userPhoto.id, 
+        account: userPhoto.account
+    }).from(userPhoto).where(eq(userPhoto.photoKey, photoKey));
     const contestFee = existingPhoto ? FEES.CONTEST : FEES.CONTEST_NEW_PHOTO;
+    if (existingPhoto && existingPhoto.account !== c.get('user').account) {
+        throw new HTTPException(400, {message: 'La foto existe a un cuenta distinta de la conectada'});
+    }    
     checkAndUseFunds(c, contestFee);
     const photoMetadata = {
         title: meta?.customMetadata?.title,    
@@ -170,36 +176,42 @@ export const createPhotoNFT = async (c: Context, contestId: number, userId: numb
         size: meta.size
       }
 
-    const [tokenData] = await sendMetatransaction(c, signedMessage);
-    if (!tokenData) {
-        throw new HTTPException(500, {message: 'No se recuperaron datos del NFT'});
-    }
-    console.log('tokenData:', tokenData);
-    const txData ={
-        owner: (tokenData as any).args.owner,
-        txHash: tokenData.transactionHash,
-        tokenId: Number((tokenData as any).args.tokenId),
-    }
+    let photoId;
 
-    const newPhoto = await db.insert(userPhoto).values({
-        ...photoMetadata,
-        userId,               
-        account: txData.owner,
-        tokenId: txData.tokenId,
-        ownerSince: new Date(),
-        mintTx: txData.txHash,
-        lastTransferTx: txData.txHash
-    } as UserPhotoType).returning({id: userPhoto.id});
+    if (!existingPhoto) {
+        const [tokenData] = await sendMetatransaction(c, signedMessage);
+        if (!tokenData) {
+            throw new HTTPException(500, {message: 'No se recuperaron datos del NFT'});
+        }
+        console.log('tokenData:', tokenData);
+        const txData ={
+            owner: (tokenData as any).args.owner,
+            txHash: tokenData.transactionHash,
+            tokenId: Number((tokenData as any).args.tokenId),
+        }
+        const [newPhoto] = await db.insert(userPhoto).values({
+            ...photoMetadata,
+            userId,               
+            account: txData.owner,
+            tokenId: txData.tokenId,
+            ownerSince: new Date(),
+            mintTx: txData.txHash,
+            lastTransferTx: txData.txHash
+        } as UserPhotoType).returning({id: userPhoto.id});
+        photoId = newPhoto.id;
+    } else {
+        photoId = existingPhoto.id;
+    }
 
     const newPhotoContest = await db.insert(contestPhoto).values({
-        photoId: newPhoto[0].id,
+        photoId: photoId,
         contestId: contestId,
         votes: 0,
         salePrice
     } as ContestPhotoType).returning({id: contestPhoto.id});
 
     return {
-        photoId: newPhoto[0].id, 
+        photoId: photoId, 
         contestPhotoId: newPhotoContest[0].id, 
         title: photoMetadata.title!, 
         size: photoMetadata.size,
@@ -207,24 +219,26 @@ export const createPhotoNFT = async (c: Context, contestId: number, userId: numb
     };
 }
 
-export const votePhoto = async (c: Context, contestId: number, userId: number, photoId: number, votes: number) : Promise<any> => {
+export const votePhoto = async (c: Context, contestId: number, userId: number, contestPhotoId: number, votes: number) : Promise<any> => {
 
     const db = getConnection(c.env.DB);
     const userVotes = await db.select({remainingVotes: user.remainingVotes}).from(user).where(eq(user.id, userId));
     if (votes > userVotes[0].remainingVotes) {
-        throw new HTTPException(400, {message: 'Not enough votes'});
+        throw new HTTPException(400, {message: 'No tienes suficientes votos'});
     }
-    const photoVotes = await db.update(contestPhoto).set({votes: sql`votes + ${votes}`}).where(eq(contestPhoto.id, photoId)).returning({votes: contestPhoto.votes});
-    if (photoVotes.length === 0) {
-        throw new HTTPException(404, {message: 'Photo not found'});
+    const [photoVotes] = await db.update(contestPhoto)
+    .set({votes: sql`votes + ${votes}`})
+    .where(and(eq(contestPhoto.id, contestPhotoId), eq(contestPhoto.contestId, contestId))).returning({votes: contestPhoto.votes});
+    if (!photoVotes) {
+        throw new HTTPException(404, {message: 'Foto no encontrada'});
     }
-    const rv = await db.update(user).set({remainingVotes: sql`remaining_votes - ${votes}`}).where(eq(user.id, userId)).returning({remainingVotes: user.remainingVotes});
+    const [rv] = await db.update(user).set({remainingVotes: sql`remaining_votes - ${votes}`}).where(eq(user.id, userId)).returning({remainingVotes: user.remainingVotes});
 
     const logVote = await db.insert(logVotes).values({
         userId,
-        contestPhotoId: photoId,
+        contestPhotoId,
         votes
     }).returning({id: logVotes.id});
-    return {votes, remainigVotes: rv[0].remainingVotes, logVoteId: logVote[0].id};
+    return {contestPhotoId, votes, remainigVotes: rv.remainingVotes, logVoteId: logVote[0].id};
 }
 

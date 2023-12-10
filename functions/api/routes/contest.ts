@@ -3,7 +3,7 @@ import { VERSION } from "@lib/common/version";
 import { Context, Hono } from "hono";
 import { getJsonBody, verifyAdminUser } from '@lib/common/hono-utils';
 import { HTTPException } from 'hono/http-exception';
-import { createContest, getContest, getContests, initContest, createPhotoNFT, updateContest, votePhoto } from '@lib/services/contest-service';
+import { createContest, getContest, getContests, initContest, participateInContestWithNFT, updateContest, votePhoto } from '@lib/services/contest-service';
 
 
 export const route = new Hono<{ Bindings: Bindings }>();
@@ -64,10 +64,9 @@ route.post('/:contestId/signedphoto', async (c: Context) => {
     throw new HTTPException(404, {message: 'Concurso inexistente'});
   }
   const requestData = await getJsonBody(c);
-  const photoData = await createPhotoNFT(c, contestId, userId, requestData);
-  return c.json({photoData});
+  const photoData = await participateInContestWithNFT(c, contestId, userId, requestData);
+  return c.json(photoData);
 });
- 
 
 
 /**
@@ -76,8 +75,8 @@ route.post('/:contestId/signedphoto', async (c: Context) => {
 route.post('/:contestId/vote', async (c: Context) => {
   const userId = c.get('user').id;
   const contestId = parseInt(c.req.param('contestId'));
-  const { photoId, votes } = await c.req.json()
-  const logVote = await votePhoto(c, contestId, userId, photoId, votes);
+  const { contestPhotoId, votes } = await c.req.json();
+  const logVote = await votePhoto(c, contestId, userId, contestPhotoId, votes);
   return c.json({...logVote});
 });
  

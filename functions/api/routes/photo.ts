@@ -13,8 +13,7 @@ export const route = new Hono<{ Bindings: Bindings }>();
  * Descarga una foto
  */
 route.get('/:photoKey', async (c: Context) => {
-  const photoKey = c.req.param('photoKey');  
-
+  const photoKey = c.req.param('photoKey');
   return await getPhoto(c, photoKey);
 });
 
@@ -23,11 +22,8 @@ route.get('/:photoKey', async (c: Context) => {
  * Sube una foto al repositorio R2 y retorna la key y datos para firmar la transacción
  * que generará el NFT
  */
-route.post('/prepare/:photoId?', async (c: Context) => {
-  const userId = c.get('user').id;
-  const photoId = parseInt(c.req.param('photoId'));
-
-  const dataTosign = await preparePhotoNFT(c, photoId);
+route.post('/prepare', async (c: Context) => {
+  const dataTosign = await preparePhotoNFT(c);
   return c.json({...dataTosign});
 });
 
@@ -35,7 +31,7 @@ route.post('/prepare/:photoId?', async (c: Context) => {
  * Borra una foto si no está en DB
  */
 route.delete('/:photoKey', async (c: Context) => {
-  const photoKey = c.req.param('photoKey');  
-
+  const photoKey = c.req.param('photoKey');
   return c.json(await deleteOrphanPhoto(c, photoKey));
 });
+ 

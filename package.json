@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "wrangler pages dev ./pages --compatibility-date=2023-11-24 --compatibility-flags=nodejs_compat --d1 v4b-db",
+    "dev-scheduled": "wrangler dev src/scheduled/monitor.ts --test-scheduled  --compatibility-date=2023-11-24 --compatibility-flags=nodejs_compat",
     "deploy": "wrangler pages deploy ./pages"
   },
   "dependencies": {

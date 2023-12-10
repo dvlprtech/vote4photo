@@ -27,6 +27,7 @@
 	import type { FeesType } from './proxy+page';
 	import { userId } from '$lib/store/session-store';
 	import type { UserPhotoData } from '$lib/domain/account';
+	import { walletAccount } from '$lib/store/wallet-store';
 
 	const dispatch = createEventDispatcher();
 
@@ -36,7 +37,7 @@
 			const accountData = await r.json();	
 			userFunds = accountData.funds;
 			const photos = accountData.photos as UserPhotoData[];
-			availableUserPhotos = photos.filter((p) => !p.currentContestId);
+			availableUserPhotos = photos.filter((p) => !p.currentContestId && p.account === $walletAccount);
 		}
 	};
 
@@ -78,21 +79,24 @@
 			photoKey.set('');
 			const photoData = await r.json();
 			dispatch('close', {});
+			console.log('photoData created', photoData);
 			dispatch('created', photoData);
 		}
 	};
 
 	const preparePhoto = async (form: HTMLFormElement) => {
+		const data = new FormData();
 		const formdata = new FormData(form);
-		const photo = fileToUpload;
 		const title = formdata.get('title');
-		if (!photo) {
-			showError('No se ha incluido la foto');
-			return;
+		if (!existingPhoto) {
+			const photo = fileToUpload;		
+			if (!photo) {
+				showError('No se ha incluido la foto');
+				return;
+			}
+			data.append('photo', photo);
 		}
 
-		const data = new FormData();
-		data.append('photo', photo);
 		data.append('title', title as string);
 		const url = existingPhoto ? `/api/photo/prepare/${existingPhoto.id}` : '/api/photo/prepare';
 		const r = await fetchProxy(url, {
