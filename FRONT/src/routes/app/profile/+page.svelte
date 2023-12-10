@@ -204,7 +204,7 @@
 		<div slot="title" class="flex items-center gap-2 relative">
 		  <Fa icon={faImages} class="text-lg" />
 		  <span class="">Fotos</span>
-		  {#if profile.photos.length > 0}
+		  {#if profile?.photos.length > 0}
 		<Badge rounded class="text-white bg-primary-400 text-xs font-bold">{profile.photos.length}</Badge>
 		  {/if}
 		</div>

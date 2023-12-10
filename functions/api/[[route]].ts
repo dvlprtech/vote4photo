@@ -12,7 +12,7 @@ import { route as configRoute } from './routes/config'
 import { route as photoRoute } from './routes/photo'
 import { hashPassword, verifyPassword } from '@lib/common/crypto-utils'
 import { loadInitData } from '@lib/domain/_local_data'
-import { globalErrorHandler, requestTimeLog, securityFilter } from '@lib/common/hono-utils'
+import { SecRequest, globalErrorHandler, requestTimeLog, securityFilter } from '@lib/common/hono-utils'
 import PhotoNFT from "@lib/contracts/PhotoNFT.json";
 import V4PForwarder from "@lib/contracts/V4PForwarder.json";
 import { getDomain } from '@lib/services/blockchain-services'
@@ -21,12 +21,11 @@ import { getDomain } from '@lib/services/blockchain-services'
 const API_PREFIX = '/api';
 
 const PUBLIC_APIS = [
-  '/api',
-  '/api/photo/*',
-  '/api/account/signin',
-  '/api/account/signup',
-  '/api/account/validate'
-];
+  ['GET', '/api',],
+  ['GET', '/api/photo/*',],
+  ['POST', '/api/account/signin',],
+  ['POST', '/api/account/signup',],
+] as SecRequest[];
 
 
 const app = new Hono<{ Bindings: Bindings }>().basePath(API_PREFIX);

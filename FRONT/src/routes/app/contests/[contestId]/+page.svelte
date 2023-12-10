@@ -2,7 +2,7 @@
   	
 	import { page } from "$app/stores";
 	import { fetchProxy } from "$lib/utils/fetch-utils";
-	import { getStatusName, type ContestDetail, getStatusColor } from "$lib/domain/contests";
+	import { getStatusName, type ContestDetail, getStatusColor, type ContestPhoto } from "$lib/domain/contests";
 	import { onMount } from "svelte";
 	import { Button, Card } from "flowbite-svelte";
 	import Fa from "svelte-fa";
@@ -14,6 +14,7 @@
 	import { isAdminUser } from "$lib/store/session-store";
 	import type { PageData } from "./$types";
 	import NewPhoto from "./new-photo.svelte";
+	import VotePhoto from "./vote-photo.svelte";
 
 	export let data: PageData;
 
@@ -21,6 +22,9 @@
 	$: contestData = data.contestData as ContestDetail;
 	$: photos = contestData.photos || [];
 	$: openModalPhoto = false;
+	$: openModalVote = false;
+	$: photoToBeVoted = undefined as ContestPhoto | undefined;
+	$: clickedButton = undefined as HTMLButtonElement | undefined;
 
 
 	const addPhoto = async () => {
@@ -33,12 +37,23 @@
 			contestData = {...contestData, ...(await r.json())};
 		}
 	}
-	const photoCreated = async () => {
-	
+	const photoCreated = async (photoData: CustomEvent<ContestPhoto>) => {
+		console.log('photoCreated', photoData);
+		console.log('photoCreated', photoData.detail);
+		contestData = {...contestData, photos: [...contestData.photos, photoData.detail]};
 		closedPhotoDialog();
 	}
 	const closedPhotoDialog = async () => {
 		openModalPhoto = false;
+	}
+	const photoVoted = async (event : CustomEvent<{contestPhotoId: number, votes: number}>) => {
+		console.log('photoVoted', event.detail);	
+		console.log('button clicked', clickedButton);	
+	}
+	const openVotePhotoDialog = async (photo: ContestPhoto, button: EventTarget | null) => {
+		photoToBeVoted = photo;
+		openModalVote = true;
+		clickedButton = button as HTMLButtonElement;
 	}
 
 </script>
@@ -83,7 +98,7 @@
 			{/if}
 			
 			<div class="flex justify-end mt-2">
-				<Button color="light" size="xs">
+				<Button color="light" size="xs" on:click={(e) => openVotePhotoDialog(photo, e.target)}>
 					<Fa icon={faStar} class="w-5 h-5 mr-1" /> Vota
 				</Button>
 			</div>
@@ -100,6 +115,8 @@
 	</div>
 {/if}
 <NewPhoto {contestId} fees={data.fees} openModal={openModalPhoto} on:created={photoCreated} on:close={closedPhotoDialog} />
+
+<VotePhoto {contestId} selectedPhoto={photoToBeVoted} openModal={openModalVote} on:voted={photoVoted} on:close={() => openModalVote = false} />
 
 
 <style>

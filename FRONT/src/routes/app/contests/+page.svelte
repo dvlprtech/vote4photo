@@ -2,9 +2,9 @@
   	
 	import { page } from "$app/stores";
 	import { goto } from '$app/navigation';
-	import { Badge, Button, Card } from "flowbite-svelte";
+	import { Badge, Button, Card, Img, Input, Label, Modal, NumberInput, Select, Spinner } from "flowbite-svelte";
 	import Fa from "svelte-fa";
-	import { faImages, faPlus, faRefresh } from "@fortawesome/free-solid-svg-icons";
+	import { faImages, faPlus, faRefresh, faStar } from "@fortawesome/free-solid-svg-icons";
 	import { onMount } from "svelte";
 	import { writable } from "svelte/store";
 	import type { ContestListing } from "$lib/domain/contests";
@@ -13,12 +13,14 @@
 	import { DateTime } from "luxon";
 	import { isAdminUser } from "$lib/store/session-store";
 	import { DATETIME_FULL_TS } from "$lib/utils/format-utils";
+	import VotePhoto from "./[contestId]/vote-photo.svelte";
 
 	const openModal = writable(false);
 	const contests = writable<ContestListing[]>([]);
 	const refresh = async () => {
 		const r = await fetchProxy('/api/contest');
 		if (r.status === 200) {
+			console.log('Refresh contest data...' );
 			contests.set(await r.json());
 		}
 	}
@@ -76,8 +78,7 @@
 				<h3 class="text-lg font-semibold tracking-tight">{c.title}</h3>
 				{#if c.totalPhotos}
 				<Badge rounded class="text-white bg-surface-900 text-xs font-bold">{c.totalPhotos}</Badge>
-				  {/if}
-		
+				  {/if}		
 			</div>
 		  
 		  <p class="mb-3 font-normal">{c.description}</p>
@@ -89,6 +90,9 @@
 </div>
 
 <NewContest openModal={$openModal} on:created={newContestCreated} on:close={closedNewContestDialog} />
+
+
+
 
 
 

@@ -1,0 +1,30 @@
+name = "vote4photo"
+
+compatibility_flags = [ "nodejs_compat" ]
+compatibility_date = "2023-11-24"
+
+[vars]
+API_ACCOUNT_ID = "0f*********"
+SECRET = "dev-mode"
+AUTH_KEY_SECRET = '73q*********'
+BUCKET_NAME = 'photos-dev'
+CHAIN_ID = '0x7a69'
+V4P_ACCOUNT = '0x1a***********'
+V4P_ACCOUNT_PRIV_KEY = '0x01**********'
+V4P_CONTRACT = '0x24*******'
+V4P_FORWARDER = '0x32*******'
+
+[[d1_databases]]
+binding = "DB" # i.e. available in your Worker on env.DB
+database_name = "v4p-db"
+database_id = "******"
+preview_database_id = "DB" # Required for Pages local development
+
+[[r2_buckets]]
+binding = 'PHOTO_BUCKET' # <~ valid JavaScript variable name
+bucket_name = 'photos-dev'
+
+[triggers]
+# Schedule cron triggers:
+# - At every 3rd minute
+crons = [ "* * * * *" ]

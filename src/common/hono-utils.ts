@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { extractBearerToken } from "./crypto-utils";
 import { validateJWT } from "@lib/services/account-service";
 
+export type SecRequest = ['GET' | 'POST', string];
 
 export const requestTimeLog = async (c: Context, next: Next) => {
   const start = performance.now();
@@ -14,15 +15,15 @@ export const requestTimeLog = async (c: Context, next: Next) => {
 }
 
 
-export const securityFilter = (config: {publicPathsPrefix?: string[]}) => {
+export const securityFilter = (config: {publicPathsPrefix?: SecRequest[]}) => {
   const publicPrefix = config.publicPathsPrefix || [];
   return async (c: Context, next: Next) => {
-    const pathMatch = publicPrefix.find(prefix => {
+    const pathMatch = publicPrefix.find(([method, prefix]: SecRequest) => {
       if (c.req.path === prefix) {
-        return true
+        return method === c.req.method;
       }
       if (prefix.endsWith('*') && c.req.path.startsWith(prefix.substring(0, prefix.length-2))) {
-        return true;
+        return method === c.req.method;
       }
       return false;
     });
