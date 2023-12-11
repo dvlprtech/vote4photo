@@ -57,7 +57,7 @@ route.get('/:contestId', async (c: Context) => {
 /**
  * Sube una foto al usuario y al concurso y crea el NFT asociado
  */
-route.post('/:contestId/signedphoto', async (c: Context) => {
+route.post('/:contestId/addphoto', async (c: Context) => {
   const userId = c.get('user').id;
   const contestId = parseInt(c.req.param('contestId'));
   if (isNaN(contestId)) {
@@ -67,7 +67,6 @@ route.post('/:contestId/signedphoto', async (c: Context) => {
   const photoData = await participateInContestWithNFT(c, contestId, userId, requestData);
   return c.json(photoData);
 });
-
 
 /**
  * Vota por una foto en un concurso

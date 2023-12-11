@@ -4,8 +4,9 @@
 		faFileUpload,
 		faUpload
 	} from '@fortawesome/free-solid-svg-icons';
+	import type { Address, Hex } from "viem";
 
-	import type { ForwardRequest } from '$lib/domain/blockchain';
+	import type { ForwardRequest, SignedForwardRequest } from '$lib/domain/blockchain';
 	import { showError } from '$lib/ui/error-manager';
 	import { fetchProxy } from '$lib/utils/fetch-utils';
 	import { signMessageWithWallet } from '$lib/utils/wallet-utils';
@@ -25,53 +26,72 @@
 	import Fa from 'svelte-fa';
 	import { writable } from 'svelte/store';
 	import type { FeesType } from './proxy+page';
-	import { userId } from '$lib/store/session-store';
+	import { currentAccount, userId } from '$lib/store/session-store';
 	import type { UserPhotoData } from '$lib/domain/account';
-	import { walletAccount } from '$lib/store/wallet-store';
+	import { ensureWallet, walletAccount } from '$lib/store/wallet-store';
 
 	const dispatch = createEventDispatcher();
 
 	const loadUserPhotos = async () => {
+		
 		const r = await fetchProxy(`/api/account/${$userId}`);
 		if (r.status === 200) {
 			const accountData = await r.json();	
 			userFunds = accountData.funds;
 			const photos = accountData.photos as UserPhotoData[];
-			availableUserPhotos = photos.filter((p) => !p.currentContestId && p.account === $walletAccount);
+			availableUserPhotos = photos.filter((p) => !p.currentContestId && p.account.toLowerCase() === $currentAccount);
 		}
+	};
+
+	const _prepareForUpload = () => {
+		photoKey.set('');
+		buttonIcon = faFileUpload;
+		buttonLabel = 'Preparar foto';
+		contestFee = fees?.CONTEST_NEW_PHOTO;
+		existingPhoto = null;
+		titleProps = {}
+	};
+
+	const _prepareForSendSignedPhoto = (pkey: string, bLabel = 'Enviar foto y firma') => {
+		photoKey.set(pkey);		
+		buttonIcon = faFileSignature;
+		buttonLabel = bLabel;
 	};
 
 	const photoSelected = (e: Event) => {
 		const photoId = parseInt((e.target as HTMLSelectElement).value);
 		if (!photoId) {
-			contestFee = fees?.CONTEST_NEW_PHOTO;
-			existingPhoto = null;
-			titleProps = {}
-
-		}
-		const photo = availableUserPhotos.find((p) => p.id === photoId);
-		if (photo) {
-			contestFee = fees?.CONTEST;
-			existingPhoto = photo;
-			titleProps = {value:  photo.title, readonly: true}
+			_prepareForUpload();			
+		} else {
+			const photo = availableUserPhotos.find((p) => p.id === photoId);
+			if (photo) {
+				contestFee = fees?.CONTEST;
+				existingPhoto = photo;				
+				titleProps = {value:  photo.title, readonly: true}
+				_prepareForSendSignedPhoto(photo.photoKey, 'Enviar foto');
+			} else {
+				_prepareForUpload();
+			}
 		}
 	};
 
 	const sendSignature = async (form: HTMLFormElement) => {
 		const formdata = new FormData(form);
-		const salePrice = formdata.get('salePrice');
-		const signature = await signMessageWithWallet(messageToSign, domain);
-		if (!signature) {
-			showError('No se ha podido firmar el mensaje');
-			return;
-		}
-		const data = {
+		const salePrice = Number(formdata.get('salePrice'));
+		const data : {salePrice: number, photoKey: string, signedMessage?: SignedForwardRequest} = {
 			salePrice,
 			photoKey: $photoKey,
-      		signedMessage: {...messageToSign, signature}
-			
-		};
-		const r = await fetchProxy(`/api/contest/${contestId}/signedphoto`, {
+		}
+		if (!existingPhoto) {
+			const signature = await signMessageWithWallet(messageToSign, domain);
+			if (!signature) {
+				showError('No se ha podido firmar el mensaje');
+				return;
+			}
+			data.signedMessage = {...messageToSign, signature};
+		}
+		
+		const r = await fetchProxy(`/api/contest/${contestId}/addphoto`, {
 			method: 'POST',
 			payload: data
 		});
@@ -79,8 +99,8 @@
 			photoKey.set('');
 			const photoData = await r.json();
 			dispatch('close', {});
-			console.log('photoData created', photoData);
 			dispatch('created', photoData);
+			loadUserPhotos();
 		}
 	};
 
@@ -107,9 +127,7 @@
 			const responseData = await r.json();
 			messageToSign = responseData.messageToSign as ForwardRequest;
 			domain = responseData.domain;
-      		photoKey.set(responseData.photoKey);
-			buttonIcon = faFileSignature;
-			buttonLabel = 'Enviar foto y firma';
+      		_prepareForSendSignedPhoto(responseData.photoKey);
 			setTimeout(() => {
 				const salePriceInput = document.getElementById('salePrice') as HTMLInputElement;
 				salePriceInput?.focus();
@@ -174,20 +192,17 @@
 	<form on:submit|preventDefault={handleSubmit}>
 		<div class="grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2">
 			<div>
-				{#if $photoKey}
-					<Img src={`/api/photo/${$photoKey}`} class="w-full h-auto" />
-				{:else}
+				{#if availableUserPhotos.length > 0}
+				<Select id="" name="userPhoto" on:change={photoSelected} class="mb-2" placeholder="">
+					<option value="0" selected>Nueva foto</option>
+					{#each availableUserPhotos as photo}
+						<option value={photo.id}>{photo.title}</option>
+					{/each}
+				</Select>
+				{/if}						
 					<Label for="dropzone" class="mb-2">Foto</Label>
-					{#if availableUserPhotos.length > 0}
-					<Select id="" name="userPhoto" on:change={photoSelected} class="mb-2" placeholder="">
-						<option value="0" selected>Nueva foto</option>
-						{#each availableUserPhotos as photo}
-							<option value={photo.id}>{photo.title}</option>
-						{/each}
-					</Select>
-					{/if}						
-					{#if existingPhoto}
-						<Img src={`/api/photo/${existingPhoto.photoKey}`} class="w-full h-auto" />
+					{#if $photoKey}
+						<Img src={`/api/photo/${$photoKey}`} class="w-full h-auto" />
 					{:else}
 					<Dropzone id="dropzone"
 						on:drop={dropHandle}
@@ -206,7 +221,7 @@
 						{/if}
 					</Dropzone>
 					{/if}
-				{/if}
+				
 			</div>
 			<div class="flex flex-col gap-2">
 				<div>

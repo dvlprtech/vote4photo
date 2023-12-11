@@ -10,7 +10,7 @@ export type FeesType = {
 
 export const load: PageLoad = async ({ params }) => {
 	const {contestId} = params;
-
+        
     let contestData: ContestDetail = {} as ContestDetail;
     let fees = {} as FeesType;
     const r = await fetchProxy(`/api/contest/${contestId}`);

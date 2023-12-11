@@ -2,7 +2,7 @@ export const ssr = false;
 export const prerender = false;
 
 import { writable, derived } from "svelte/store";
-import type { Account } from "viem";
+import type { Account, Address } from "viem";
 import { persistent } from "./persistent";
 
 
@@ -12,7 +12,7 @@ export type JwtPayload = {
     role: string, 
     fullName: string,
     chainId: number,
-    account: Account
+    account: Address
 }
 
 export const currentToken = persistent<string | null>('token', null);

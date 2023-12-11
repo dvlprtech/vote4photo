@@ -6,6 +6,15 @@
   import { page } from "$app/stores";
   import ErrorToast from '$lib/ui/error-toast.svelte';
 	import ErrorModal from '$lib/ui/error-modal.svelte';
+	import { onMount } from 'svelte';
+	import { firstConnect, walletAccount } from '$lib/store/wallet-store';
+
+  onMount(async () => {
+    if (!$walletAccount) {
+      // Necesario si se refresca la página con F5
+      await firstConnect();
+    }
+  });
 
 </script>
 
