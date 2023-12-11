@@ -9,12 +9,15 @@ export const chain = writable<Chain | undefined>();
 
 export const walletAccount = writable<Address | undefined>();
 
-export const ethereum : EIP1193Provider | undefined = (window as any).ethereum;
+//export const ethereum : EIP1193Provider | undefined = (window as any).ethereum;
+
+const getEthereum = () : EIP1193Provider| undefined => (window as any).ethereum;
+
 
 const _accountChangedHandler = (accounts: Address[]) => {
     if (!isAddressEqual(accounts[0], get(walletAccount) || ZERO_ADDRESS)) {
         console.log('Account has changed to: ', accounts[0]);
-        walletAccount.set(accounts[0]);
+        walletAccount.set(accounts[0].toLowerCase() as Address);
     }
 }
 
@@ -28,18 +31,18 @@ const _chainChangedHandler = (chainId: `0x{string}`) => {
 }
 
 wallet.subscribe(connectedWallet => {
-    ethereum?.removeListener('chainChanged', _chainChangedHandler);
+    getEthereum()?.removeListener('chainChanged', _chainChangedHandler);
     if (connectedWallet) {
         chain.set(getChain(get(wallet).chain?.id));
-        ethereum?.on('chainChanged', _chainChangedHandler);
+        getEthereum()?.on('chainChanged', _chainChangedHandler);
     }    
 });
 
 
 walletAccount.subscribe(newAccount => {
-    ethereum?.removeListener('accountsChanged', _accountChangedHandler);
+    getEthereum()?.removeListener('accountsChanged', _accountChangedHandler);
     if (newAccount) {
-        ethereum?.on('accountsChanged', _accountChangedHandler);
+        getEthereum()?.on('accountsChanged', _accountChangedHandler);
     }
 });
 
@@ -62,7 +65,7 @@ export const firstConnect = async () => {
 
     const allWalletAccounts = await client.requestAddresses();
     console.log('Account:', allWalletAccounts[0]);
-    walletAccount.set(allWalletAccounts[0]);
+    walletAccount.set(allWalletAccounts[0].toLowerCase() as Address);
 }
 
 export const ensureWallet = async () => {

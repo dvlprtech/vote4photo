@@ -166,7 +166,7 @@ export const participateInContestWithNFT = async (c: Context, contestId: number,
     }).from(userPhoto).where(eq(userPhoto.photoKey, photoKey));
     const contestFee = existingPhoto ? FEES.CONTEST : FEES.CONTEST_NEW_PHOTO;
     if (existingPhoto && existingPhoto.account !== c.get('user').account) {
-        throw new HTTPException(400, {message: 'La foto existe a un cuenta distinta de la conectada'});
+        throw new HTTPException(400, {message: 'La foto pertenece a un cuenta distinta de la conectada'});
     }    
     checkAndUseFunds(c, contestFee);
     const photoMetadata = {

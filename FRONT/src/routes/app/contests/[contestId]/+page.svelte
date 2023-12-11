@@ -15,6 +15,7 @@
 	import type { PageData } from "./$types";
 	import NewPhoto from "./new-photo.svelte";
 	import VotePhoto from "./vote-photo.svelte";
+	import { firstConnect, walletAccount } from "$lib/store/wallet-store";
 
 	export let data: PageData;
 

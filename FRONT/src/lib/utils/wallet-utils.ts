@@ -1,7 +1,7 @@
 import { TYPES, type ForwardRequest } from "$lib/domain/blockchain";
 import { ensureWallet, wallet, walletAccount } from "$lib/store/wallet-store";
 import { get } from "svelte/store";
-import { createWalletClient, custom, type Account, type WalletClient, type Address, getChainContractAddress, type Chain, hexToNumber } from "viem";
+import { createWalletClient, custom, type Account, type WalletClient, type Address, getChainContractAddress, type Chain, hexToNumber, type Hex } from "viem";
 import { hardhat, sepolia } from "viem/chains";
 
 export const ALLOWED_CHAINS = [hardhat, sepolia];
@@ -29,7 +29,7 @@ export const getWalletAccount = async (wallet: WalletClient) : Promise<Address |
     return walletAddresses[0];
 }
 
-export const signMessageWithWallet = async (message: ForwardRequest, domain: object) : Promise<string> => {
+export const signMessageWithWallet = async (message: ForwardRequest, domain: object) : Promise<Hex> => {
     const msgReal = {...message, 
         value: BigInt(message.value),
         gas: BigInt(message.gas),

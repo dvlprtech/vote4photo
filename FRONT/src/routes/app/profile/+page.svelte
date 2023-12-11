@@ -215,7 +215,7 @@
 						<h5 class="mb-2 text-lg tracking-tight">{photo.title}</h5>
 						<ul class="text-text-400 text-sm">
 							<li>Token ID: <span class="text-text-900">{photo.tokenId}</span></li>
-							<li class="text-ellipsis">TX: <span class="text-text-900">{ellipsis(photo.lastTransferTx, 20)}</span></li>
+							<li class="text-ellipsis">Cuenta: <span class="text-text-900">{ellipsis(photo.account, 16)}</span></li>
 							<li>Tamaño: <span class="text-text-900">{getReadableFileSize(photo.size)}</span></li>
 						    <li>Desde: <span class="text-text-900">{localDateTime(photo.ownerSince)}</span></li>
 							{#if photo.currentContestTitle}

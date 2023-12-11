@@ -5,7 +5,7 @@ import { and, desc, eq, lte, ne, sql } from "drizzle-orm";
 import { Context } from "hono"
 import { HTTPException } from "hono/http-exception";
 import jwt from '@tsndr/cloudflare-worker-jwt'
-import { Account } from "viem";
+import { Account, Address } from "viem";
 import { assertValidChain } from "./blockchain-services";
 
 type UserType = typeof user.$inferSelect;
@@ -24,12 +24,12 @@ export type JwtPayload = {
     role: string, 
     fullName: string,
     chainId: number,
-    account: Account
+    account: Address
 }
 
 const TOKEN_DURATION = 14*3600;
 
-export const jwtFromCredentials = async (c: Context, userEmail: string, password: string, chainId:number, account: Account) : Promise<string> => {
+export const jwtFromCredentials = async (c: Context, userEmail: string, password: string, chainId:number, account: Address) : Promise<string> => {
     assertValidChain(c, chainId);
     const db = getConnection(c.env.DB);
     const u = await db.select({password: user.password, id: user.id, role: user.role, fullName: user.fullName}).from(user).where(eq(user.email, userEmail));
@@ -47,8 +47,9 @@ export const jwtFromCredentials = async (c: Context, userEmail: string, password
         email: userEmail,
         role: u[0].role!,
         fullName: u[0].fullName,
-        chainId, account
-    }
+        chainId, 
+        account: account.toLowerCase() as Address
+    } as JwtPayload;
     return generateJWT(jwtPayload, c.env.SECRET);
 }
 
@@ -116,7 +117,7 @@ export const getProfile = async (c: Context, userid: number) : Promise<Partial<U
     return userProfile;
 }
 
-export const createUser = async (c: Context, userData: UserType, chainId:number, account: Account) : Promise<{id: number, jwt: string}> => {
+export const createUser = async (c: Context, userData: UserType, chainId:number, account: Address) : Promise<{id: number, jwt: string}> => {
     assertValidChain(c, chainId);
     
     const db = getConnection(c.env.DB);
@@ -131,7 +132,8 @@ export const createUser = async (c: Context, userData: UserType, chainId:number,
             email: userData.email,
             role: userData.role,
             fullName: userData.fullName,
-            chainId, account
+            chainId, 
+            account: account.toLowerCase() as Address
         }
         const jwt = await generateJWT(jwtPayload, c.env.SECRET);
     
