@@ -23,6 +23,7 @@ const contestsMonitor = async (env: Bindings) => {
         if (c.endTimestamp < now) {
           console.log(`Contest ${c.title} has ended!`);
           //await db.update(contest).set({ status: 'finished' }).where(eq(contest.id,c.id));
+          //await db.update(contest).set({ status: 'finished' }).where(eq(contest.id,c.id));
         }
       }
     } else {

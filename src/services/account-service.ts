@@ -140,7 +140,11 @@ export const createUser = async (c: Context, userData: UserType, chainId:number,
         return {id: jwtPayload.id, jwt};
     } catch(err: unknown) {
         console.warn('Error creating user: ' + err);
-        throw new HTTPException(500, {message: 'Error creando el usuario'});
+        let message = 'Error creando el usuario';
+        if (`${err}`.includes('user.email')) {
+            message = 'El email ya está registrado';
+        }
+        throw new HTTPException(500, {message});
     }
 }
 

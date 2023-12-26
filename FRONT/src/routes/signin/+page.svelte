@@ -18,7 +18,6 @@
 	import Footer from '../app/footer.svelte';
 
 	const token = get(currentToken);
-	console.log(`TOKEN stored: ${token}`);
 
 	const onSubmit = async (e: SubmitEvent) => {
 		console.log('Signing in...');

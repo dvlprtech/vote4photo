@@ -42,7 +42,7 @@ route.post('/signup', async (c: Context) => {
   const {chainId, account, ...userData} = await getJsonBody(c);
 
   await _verifyChallenge(c, challengeMinuteDate, userData.email);
-
+  
   return c.json(await createUser(c, userData, chainId, account));
 })
 
@@ -70,7 +70,7 @@ route.get('/:userId', async (c: Context) => {
   return c.json(await getProfile(c, userId))
 })
   
-route.post('/:userId', async (c: Context) => {  
+route.put('/:userId', async (c: Context) => {  
   const userId = parseInt(c.req.param('userId'));
   const profileData = await getJsonBody(c);
   verifyUser(c, userId);  
@@ -84,11 +84,12 @@ route.post('/:userId', async (c: Context) => {
 async function _verifyChallenge(c: Context, challengeMinuteDate: string, email: string) {
   const __challenge = c.req.header('x-v4p-challenge') || '';  
   if (!__challenge) {
-    throw new HTTPException(401, {message: 'Invalid data'});
+    throw new HTTPException(403, {message: 'Datos no válidos'});
   }  
-  const challenge = await hash(challengeMinuteDate, email);
+  const challenge = await hash('SHA-256', challengeMinuteDate, email);
   if (challenge !== __challenge) {
-    throw new HTTPException(401, {message: 'Invalid data'});
+    console.log('ERROR Challenge:', __challenge, ', expected:', challenge);
+    throw new HTTPException(403, {message: 'Datos no válidos'});
   }  
 }
 

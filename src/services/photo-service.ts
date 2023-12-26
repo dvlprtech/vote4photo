@@ -109,7 +109,7 @@ const uploadPhotoToBucket = async (c: Context, title: string, photo: File) : Pro
       httpMetadata: {contentType: mimeType}
     });
     const photoMetadata = {
-      title: r.customMetadata.title,    
+      title: r.customMetadata.title,
       photoKey: r.key,
       md5: Buffer.from(r.checksums.md5 as ArrayBuffer).toString('hex'),
       size: r.size
