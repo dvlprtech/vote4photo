@@ -26,11 +26,11 @@ export async function hashPassword(plainPassword: string): Promise<string> {
   return `${saltB64}${SEP}${hashedPassB64}`;
 }
 
-export async function hash(...data: string[]): Promise<string> {
+export async function hash(algorithm: string, ...data: string[]): Promise<string> {
   const encoder = new TextEncoder();
   const arrayData = encoder.encode(data.join(''));
 
-  const hashed = await crypto.subtle.digest(PASS_HASH_ALGORITHM, arrayData);
+  const hashed = await crypto.subtle.digest(algorithm, arrayData);
   const b64Data = Buffer.from(hashed).toString('base64');
 
   return b64Data;
