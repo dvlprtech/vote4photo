@@ -1,12 +1,13 @@
 
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { text, integer, sqliteTable, real } from "drizzle-orm/sqlite-core";
 
-export const USER_ROLES: [string, ...string[]] = ['user', 'admin'];
-export const CONTEST_STATUS: [string, ...string[]] = ['pending', 'active', 'finished'];
-export const OP_STATUS: [string, ...string[]] = ['pending', 'rejected', 'executed'];
-export const OP_TYPE: [string, ...string[]] = ['transfer', 'buy'];
-
+export const USER_ROLES = ['user', 'admin'] as const;
+export const CONTEST_STATUS = ['pending', 'active', 'finished'] as const;
+export const OP_STATUS = ['pending', 'rejected', 'executed'] as const;
+export const OP_TYPE = ['accept_prize', 'notification', 'buy', 'sell'] as const;
+export type OperationTypeType = typeof OP_TYPE[number];
+export type OperationStatusType = typeof OP_STATUS[number];
 
 export const user = sqliteTable('user', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
@@ -75,10 +76,13 @@ export const userVotes = sqliteTable('user_votes', {
 
 export const operations = sqliteTable('operations', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').references(() => user.id),
-  contestPhotoId: integer('contest_photo_id').references(() => contestPhoto.id),
-  type: text('type', { enum: OP_TYPE }),
-  status: text('status', { enum: OP_STATUS }).default('pending'),
+  userId: integer('user_id').references(() => user.id).notNull(),
+  contestPhotoId: integer('contest_photo_id').references(() => contestPhoto.id).notNull(),
+  type: text('type', { enum: OP_TYPE }).notNull(),
+  status: text('status', { enum: OP_STATUS }).default('pending').notNull(),
+  message: text('message').notNull(),
+  destinationUserId: integer('destination_user_id').references(() => user.id),
+  destinationAddress: text('destination_address'),
   executionTimestamp: integer('execution_timestamp', { mode: 'timestamp_ms' }),
   expirationTimestamp: integer('expiration_timestamp', { mode: 'timestamp_ms' }).notNull(),
   rejectionTimestamp: integer('rejection_timestamp', { mode: 'timestamp_ms' }),
