@@ -7,7 +7,7 @@ import { eq, sql } from "drizzle-orm";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { Buffer } from 'node:buffer';
-import { getDomain, getMessageToSignForNFTCreation, getNonce } from './blockchain-services';
+import { getDomain, getMessageSeralizable, getMessageToSignForNFTCreation, getNonce } from './blockchain-services';
 
 
 type UserPhotoType = typeof userPhoto.$inferSelect;
@@ -76,16 +76,7 @@ export const preparePhotoNFT = async (c: Context) : Promise<{
     const jsonTokenUrl = `${getUrlBase(c)}/api/photo/${jsonKey}`;
     const nonce = await getNonce(c, userAccount);
     const rawMessageToSign = await getMessageToSignForNFTCreation(userAccount, contractAddress, nonce, jsonTokenUrl);
-    const messageToSign = Object.keys(rawMessageToSign).reduce((acc: any, key: string) => {
-        const value = rawMessageToSign[key as keyof ForwardRequest];
-        if (typeof value === 'bigint') {
-            acc[key] = parseInt(value.toString());
-        } else {
-            acc[key] = value;
-        }
-        return acc;    
-    }, {} as Record<keyof ForwardRequest, unknown>);
-    console.log('Message to sign:', rawMessageToSign);
+    const messageToSign = getMessageSeralizable(rawMessageToSign);
 
     return {messageToSign, photoKey: photoKey!, domain: await getDomain(c) };
 }

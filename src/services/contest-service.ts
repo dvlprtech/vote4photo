@@ -1,8 +1,8 @@
 import { Buffer } from 'node:buffer';
 import { getMimeType } from '@lib/common/mime';
 import { getConnection } from "@lib/domain/db-conn";
-import { contest, contestPhoto, logVotes, user, userPhoto } from "@lib/domain/schema";
-import { and, desc, eq, gte, isNotNull, lte, ne, sql } from "drizzle-orm";
+import { contest, contestPhoto, logVotes, user, userPhoto, userVotes } from "@lib/domain/schema";
+import { and, desc, eq, gt, gte, isNotNull, lte, ne, sql } from "drizzle-orm";
 import { Context } from "hono"
 import { HTTPException } from "hono/http-exception";
 import { BodyData } from "hono/utils/body";
@@ -13,6 +13,8 @@ import { getUrlBase } from '@lib/common/hono-utils';
 import { Hex } from 'viem';
 import { FEES } from '@lib/domain/params';
 import { checkAndUseFunds } from './account-service';
+import { Bindings } from '@lib/domain/env';
+import { createOperation } from './operation-service';
 
 type ContestType = typeof contest.$inferSelect;
 type UserPhotoType = typeof userPhoto.$inferSelect;
@@ -31,6 +33,15 @@ type PhotoNFTData = {
     size: number,
     photoKey: string
 }
+
+type ResultContestType = {
+    contestId: number,
+    winnerContestPhotoId: number,
+    winnerPhotoId: number,
+    ownerId: number,
+    winnerVoterId: number
+}
+
 
 export const getContests = async (c: Context, includeFinished: boolean = false) : Promise<(Partial<ContestType> & {totalPhotos: number})[]> => {
     const db = getConnection(c.env.DB);
@@ -179,7 +190,7 @@ export const participateInContestWithNFT = async (c: Context, contestId: number,
     let photoId;
 
     if (!existingPhoto) {
-        const [tokenData] = await sendMetatransaction(c, signedMessage);
+        const [tokenData] = await sendMetatransaction(c, signedMessage, 'mint');
         if (!tokenData) {
             throw new HTTPException(500, {message: 'No se recuperaron datos del NFT'});
         }
@@ -219,11 +230,11 @@ export const participateInContestWithNFT = async (c: Context, contestId: number,
     };
 }
 
-export const votePhoto = async (c: Context, contestId: number, userId: number, contestPhotoId: number, votes: number) : Promise<any> => {
+export const votePhoto = async (c: Context, contestId: number, userId: number, contestPhotoId: number, votes: number, wantBuy: boolean) : Promise<any> => {
 
     const db = getConnection(c.env.DB);
-    const userVotes = await db.select({remainingVotes: user.remainingVotes}).from(user).where(eq(user.id, userId));
-    if (votes > userVotes[0].remainingVotes) {
+    const [{userRemainingVotes}] = await db.select({userRemainingVotes: user.remainingVotes}).from(user).where(eq(user.id, userId));
+    if (votes > userRemainingVotes) {
         throw new HTTPException(400, {message: 'No tienes suficientes votos'});
     }
     const [photoVotes] = await db.update(contestPhoto)
@@ -239,6 +250,157 @@ export const votePhoto = async (c: Context, contestId: number, userId: number, c
         contestPhotoId,
         votes
     }).returning({id: logVotes.id});
+    const [{existingVoteId}] = await db.select({
+        existingVoteId: userVotes.id,
+    }).from(userVotes).where(and(
+        eq(userVotes.userId, userId),
+        eq(userVotes.contestPhotoId, contestPhotoId)
+    ));
+    if (existingVoteId) {
+        await db.update(userVotes).set({votes: sql`votes + ${votes}`, wantBuy}).where(eq(userVotes.id, existingVoteId));
+    } else {
+        await db.insert(userVotes).values({
+            userId,
+            contestPhotoId,
+            votes,
+            wantBuy
+        });
+    }
     return {contestPhotoId, votes, remainigVotes: rv.remainingVotes, logVoteId: logVote[0].id};
+}
+
+/**
+ * Elige una foto ganadora de un concurso de manera ponderada a los votos recibidos
+ * @param env Variables de entorno
+ * @param contestId Id del concurso
+ */
+export const drawWinnerPhotoId = async (env: Bindings, contestId: number) : Promise<ResultContestType | null> => {
+    const db = getConnection(env.DB);
+    const [{maxVotes}] = await db.select({
+        maxVotes: sql<number>`max(votes)`.as('maxVotes')
+    }).from(contestPhoto).where(eq(contestPhoto.contestId, contestId));
+    if (!maxVotes) {
+        return null;
+    }
+    const winnerPhotos = await db.select({
+        contestPhotoId: contestPhoto.id,
+        photoId: contestPhoto.photoId,
+        votes: contestPhoto.votes
+    }).from(contestPhoto).where(and(
+        eq(contestPhoto.contestId, contestId), 
+        eq(contestPhoto.votes, maxVotes)));
+    let winnerPhoto = winnerPhotos[0];
+    if (winnerPhotos.length > 1) {
+        // En caso de empate, la foto más antígua gana
+        winnerPhotos.forEach(wp => {
+            if (wp.photoId! < winnerPhoto.photoId!) {
+                winnerPhoto = wp;
+            }
+        });        
+    }
+    const [{ownerId, title}] = await db.select({
+        ownerId: userPhoto.userId,
+        title: userPhoto.title
+    }).from(userPhoto).where(eq(userPhoto.id, winnerPhoto.photoId!));
+
+    const totalVotes = winnerPhoto.votes!;
+    const winningVote = Math.floor(Math.random() * totalVotes);
+    const voters = await db.select({
+        userId: userVotes.userId,
+        votes: userVotes.votes
+    }).from(userVotes).where(eq(userVotes.contestPhotoId, winnerPhoto.contestPhotoId));
+    
+    let winnerVoterId = 0;
+    let currentVote = 0;
+    for (const v of voters) {
+        currentVote += v.votes;
+        if (currentVote > winningVote) {
+            winnerVoterId = v.userId!;
+            break;
+        }
+    }
+    if (winnerVoterId === 0) {
+        return null;
+    }
+    const prize = totalVotes * env.MONEY_PER_VOTE;
+    await db.update(contest).set({
+        winingPhotoId: winnerPhoto.photoId!, 
+        totalPrize: prize,
+        userDrawWinningId: winnerVoterId})
+    .where(eq(contest.id, contestId));
+    createOperation(env, {
+        userId: ownerId!,        
+        destinationUserId: winnerVoterId,
+        contestPhotoId: winnerPhoto.contestPhotoId!,
+        type: 'accept_prize',
+        message: `¡Enhorabuena! Tu foto '${title}' ha ganado el concurso con un premio de: ${prize.toFixed(2)} €. Para recibirlo, debes aceptar la transferencia de la foto.`,
+    });
+    return {
+        contestId,
+        winnerContestPhotoId: winnerPhoto.contestPhotoId!,
+        winnerPhotoId: winnerPhoto.photoId!,
+        ownerId: ownerId!,
+        winnerVoterId: winnerVoterId
+    };
+}
+
+
+/**
+ * Crea operaciones de compra para las fotos de un concurso (exceptuando la foto ganadora)
+ * 
+ * @param env 
+ * @param contestId 
+ * @param winnerPhotoId 
+ */
+export const createBuyOperations = async (env: Bindings, resultContest: ResultContestType) : Promise<void> => {
+    const db = getConnection(env.DB);
+    const otherVotedPhotos = await db.select({
+        contestPhotoId: contestPhoto.id,
+        photoId: contestPhoto.photoId,
+        ownerId: userPhoto.userId,
+        price: contestPhoto.salePrice,
+        title: userPhoto.title,
+        salePrice: contestPhoto.salePrice,
+        votes: contestPhoto.votes
+    }).from(contestPhoto)
+    .innerJoin(userPhoto, eq(userPhoto.id, contestPhoto.photoId))
+    .where(and(
+        eq(contestPhoto.contestId, resultContest.contestId), 
+        gt(contestPhoto.votes, 0),
+        ne(contestPhoto.id, resultContest.winnerContestPhotoId)));
+    otherVotedPhotos.forEach(async (votedPhoto) => {
+        const totalVotes = votedPhoto.votes!;
+        const winningVote = Math.floor(Math.random() * totalVotes);
+        const voters = await db.select({
+            userId: userVotes.userId,
+            votes: userVotes.votes
+        }).from(userVotes).where(
+            and(
+                eq(userVotes.contestPhotoId, votedPhoto.contestPhotoId),
+                eq(userVotes.wantBuy, true)));
+        
+        let winnerVoterId = 0;
+        let currentVote = 0;
+        for (const v of voters) {
+            currentVote += v.votes;
+            if (currentVote > winningVote) {
+                winnerVoterId = v.userId!;
+                break;
+            }
+        }
+        if (winnerVoterId === 0) {
+            return;
+        }
+        createOperation(env, {
+            userId: winnerVoterId!,        
+            destinationUserId: votedPhoto.ownerId!,
+            contestPhotoId: votedPhoto.contestPhotoId!,
+            type: 'buy',
+            message: `¿Deseas comprar la foto '${votedPhoto.title}' por: ${votedPhoto.salePrice} €?. Debes tener suficientes fondos en tu cuenta.`,
+        });    
+    });
+    
+    
+
 }
 

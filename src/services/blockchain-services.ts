@@ -10,6 +10,8 @@ import V4PForwarder from "@lib/contracts/V4PForwarder.json";
 
 type eip712DomainType = [string, string, string, number, string, string, string[]];
 
+export type TxType = 'mint' | 'transfer';
+
 export const contracts = {
     abiPhotoNFT: [...PhotoNFT.abi] as const,
     abiV4PForwarder: [...V4PForwarder.abi] as const
@@ -32,7 +34,7 @@ export const connectToV4PChainNetwork = (c: Context) => {
     return connectEtherNetwork(chainId, account);
 }
 
-export const sendMetatransaction = async (c: Context, message: SignedForwardRequest) => { 
+export const sendMetatransaction = async (c: Context, message: SignedForwardRequest, txType: TxType) => { 
   const publicClient = createPublicClient({
     chain: getChain(c.env.CHAIN_ID),
     transport: http()
@@ -54,7 +56,7 @@ export const sendMetatransaction = async (c: Context, message: SignedForwardRequ
   const logs = await publicClient.getContractEvents({ 
     address: c.env.V4P_CONTRACT,
     abi: contracts.abiPhotoNFT,
-    eventName: 'newPhotoToken'
+    eventName: txType === 'mint' ? 'newPhotoToken' : 'Transfer'
   });
   console.log('logs:', logs);
   return logs;
@@ -93,12 +95,25 @@ export const getMessageToSignForNFTCreation = async (from: Address, to: Address,
   });
 }
 
-export const getMessageToSignForNFTTransfer = async (from: Address, to: Address, destination: Address, tokenId: bigint) => { 
+export const getMessageToSignForNFTTransfer = async (from: Address, to: Address, destination: Address, tokenId: bigint, nonce: bigint) => { 
     return await getMessageToSign({
         from, to,
         data : abiTransferTokenCallEncoded(destination, tokenId),
-        nonce: 0n
+        nonce
     });
+}
+
+export const getMessageSeralizable = (message: ForwardRequest) : ForwardRequest => {
+  const serializableMessage = Object.keys(message).reduce((acc: any, key: string) => {
+      const value = message[key as keyof ForwardRequest];
+      if (typeof value === 'bigint') {
+          acc[key] = parseInt(value.toString());
+      } else {
+          acc[key] = value;
+      }
+      return acc;    
+  }, {} as Record<keyof ForwardRequest, unknown>);
+  return serializableMessage;
 }
 
 export const getDomain = async (c: Context) => {

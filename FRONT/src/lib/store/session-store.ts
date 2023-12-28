@@ -22,7 +22,7 @@ export const currentAccount = derived(session, ($session?: JwtPayload) => $sessi
 export const userRole = derived(session, ($session?: JwtPayload) => !!$session?.role);
 export const isAdminUser = derived(session, ($session?: JwtPayload) => $session?.role === 'admin');
 
-export const userFullname = derived(session, ($session?: JwtPayload) => !!$session?.fullName);
+export const userFullname = derived(session, ($session?: JwtPayload) => $session?.fullName);
 export const userId = derived(session, ($session?: JwtPayload) => $session?.id);
 
 const saveToken = (_token: string | null) => {

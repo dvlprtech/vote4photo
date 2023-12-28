@@ -74,8 +74,8 @@ route.post('/:contestId/addphoto', async (c: Context) => {
 route.post('/:contestId/vote', async (c: Context) => {
   const userId = c.get('user').id;
   const contestId = parseInt(c.req.param('contestId'));
-  const { contestPhotoId, votes } = await c.req.json();
-  const logVote = await votePhoto(c, contestId, userId, contestPhotoId, votes);
+  const { contestPhotoId, votes, wantBuy } = await c.req.json();
+  const logVote = await votePhoto(c, contestId, userId, contestPhotoId, votes, wantBuy);
   return c.json({...logVote});
 });
  

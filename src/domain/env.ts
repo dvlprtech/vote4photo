@@ -3,7 +3,7 @@ export type Bindings = {
     PHOTO_BUCKET: R2Bucket,
     CHAIN_ID: string,
     BUCKET_NAME: string,
-    BUCKET_URL: string, 
+    MONEY_PER_VOTE: number,
     V4P_ACCOUNT: string, 
     V4P_ACCOUNT_PRIV_KEY: string, 
     V4P_CONTRACT: string, 
