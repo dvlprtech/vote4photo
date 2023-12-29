@@ -1,7 +1,7 @@
 import { ForwardRequest, SignedForwardRequest } from '@lib/domain/blockchain';
 import { getConnection } from "@lib/domain/db-conn";
 import { Bindings } from '@lib/domain/env';
-import { OperationStatusType, OperationTypeType, contest, contestPhoto, operations, user, userPhoto } from "@lib/domain/schema";
+import { OperationStatusType, OperationTypeType, contest, contestPhoto, operations, user, userPhoto, userVotes } from "@lib/domain/schema";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -27,15 +27,17 @@ type OperationType = typeof operations.$inferSelect;
 export type OperationCreationData = {
     userId: number
     destinationUserId?: number,
+    destinationAccount?: Address,
     contestPhotoId: number,
     message: string,
     type: OperationTypeType
 }
 
 type OperationBasicData = {
-    id: number
-    type: OperationTypeType
-    status: OperationStatusType
+    id: number,
+    type: OperationTypeType,
+    status: OperationStatusType,
+    message: string,
     expirationTimestamp?: string | Date,
     photoId: number,
     title: string,
@@ -43,9 +45,9 @@ type OperationBasicData = {
 }
 
 type OperationDetailData = {
-    id: number
+    id: number,
     userId: number,
-    type: OperationTypeType
+    type: OperationTypeType,
     status: OperationStatusType,
     contestPhotoId: number,
     expirationTimestamp?: string | Date,
@@ -67,6 +69,7 @@ export const listOwnOperations = async (c: Context, userId: number) : Promise<Op
         id: operations.id,
         type: operations.type,
         status: operations.status,
+        message: operations.message,
         expirationTimestamp: operations.expirationTimestamp,
         photoId: userPhoto.id,
         title: userPhoto.title,
@@ -169,11 +172,11 @@ export const getDataToSign = async (c: Context, operationId: number) : Promise<F
     const userAccount = c.get('user').account;
     const nonce = await getNonce(c, userAccount);
     const contractAddress = c.env.V4P_CONTRACT;
-    const destinationAddress = operation.destinationAddress;
-    if (!destinationAddress) {
+    if (!operation.destinationAccount) {
         throw new HTTPException(400, {message: 'No se registró cuenta destino para transferencia'});
     }
-    const rawMessageToSign = await getMessageToSignForNFTTransfer(userAccount, contractAddress, destinationAddress as Address, 
+    const destinationAccount = operation.destinationAccount as Address;
+    const rawMessageToSign = await getMessageToSignForNFTTransfer(userAccount, contractAddress, destinationAccount, 
         BigInt(photoData.tokenId), nonce);
     const messageToSign = getMessageSeralizable(rawMessageToSign);
 
@@ -301,12 +304,7 @@ export const executeOperation = async (c: Context, operationId: number, userId: 
 export const rejectOperation = async (c: Context, operationId: number, rejectionReason: string, userId: number) : Promise<{id: number, status: string}> => {
     const db = getConnection(c.env.DB);
     
-    const [operation] = await db.select({
-        userId: operations.userId,
-        status: operations.status,
-        type: operations.type,
-        expirationTimestamp: operations.expirationTimestamp,
-    }).from(operations).where(eq(operations.id, operationId));
+    const [operation] = await db.select().from(operations).where(eq(operations.id, operationId));
     if (!operation) {
         throw new HTTPException(404, {message: 'Operación no encontrada'});
     }
@@ -322,13 +320,51 @@ export const rejectOperation = async (c: Context, operationId: number, rejection
         rejectionTimestamp: sql`CURRENT_TIMESTAMP`,        
         rejectionReason
     }).where(eq(operations.id, operationId)).returning({status: operations.status});    
-        
+    prepareActionsForRejectedOperation(c.env, operation);
     return {
         id: operationId,
         status: execution[0].status!
     };
 }
 
+export const prepareActionsForRejectedOperation = async (env: Bindings, operation: OperationType) => {
+    if (operation.status === 'rejected' && ['accept_prize', 'sell'].includes(operation.type)) {
+        const db = getConnection(env.DB);
+        const [photo] = await db.select({
+            title: userPhoto.title,
+            totalPrize: contest.totalPrize,
+            salePrice: contestPhoto.salePrice
+        }).from(userPhoto)
+        .innerJoin(contestPhoto, eq(contestPhoto.photoId, userPhoto.id))
+        .innerJoin(contest, eq(contest.id, contestPhoto.contestId))
+        .where(eq(contestPhoto.id, operation.contestPhotoId!));
+        let message;
+        switch(operation.type) {
+            case 'accept_prize':
+                await db.update(user).set({
+                    remainingVotes: sql`${user.remainingVotes} + ${photo.totalPrize}`
+                }).where(eq(userVotes.userId, operation.destinationUserId!));
+                message = `El propietario de la foto '${photo.title}' ha rechazado el premio, en su lugar recibiras ${photo.totalPrize} € en los fondos de tu cuenta`;
+                break;
+            case 'sell':
+                const [{votes}] = await db.select({votes: userVotes.votes}).from(userVotes)
+                    .where(and(eq(userVotes.userId, operation.destinationUserId!), eq(userVotes.contestPhotoId, operation.contestPhotoId!)));
+                await db.update(user).set({
+                    remainingVotes: sql`${user.remainingVotes} + ${votes}`
+                }).where(eq(userVotes.userId, operation.destinationUserId!));
+                message = `Lo sentimos, el propietario de la foto '${photo.title}' ha rechazado la venta, recuperarás los ${votes} voto/s utilizado/s en el concurso`;
+                break;
+        }
+        const opData = {
+            userId: operation.destinationUserId!,
+            contestPhotoId: operation.contestPhotoId!,
+            type: 'notification',
+            message
+        } as OperationCreationData;
+    
+        await createOperation(env, opData);
+    }
+}
 
 async function _prepareNotificationOperations(c: Context, operation: OperationType) {
     if (operation.status === 'executed') {
@@ -400,6 +436,7 @@ async function _prepareSellOperation(c: Context, operation: OperationType) {
         await createOperation(c.env, {
             userId: photo.userId!,
             destinationUserId: operation.userId!,
+            destinationAccount: c.get('user').account,
             contestPhotoId: operation.contestPhotoId!,
             type: 'sell',
             message: `Tienes una oferta de compra para la foto: '${photo.title}' por ${photo.salePrice} €.`

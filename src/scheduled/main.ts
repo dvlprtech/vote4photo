@@ -1,7 +1,5 @@
-import { getConnection } from "@lib/domain/db-conn";
 import { Bindings } from "@lib/domain/env";
-import { contest } from "@lib/domain/schema";
-import { and, eq, lt, ne } from "drizzle-orm";
+import { expiredContestsChecker, expiredOperationsChecker, initContestsChecker } from "./monitor";
 
 type ScheduledEvent = {
     scheduledTime: Date;
@@ -13,7 +11,8 @@ type ScheduledEvent = {
 export default {
     async scheduled(event: ScheduledEvent, env: Bindings, ctx: {waitUntil: (promise: Promise<unknown>) => void}) {
         console.log('EVENT: ', event);
-        console.log('env: ', env);
-      
+        ctx.waitUntil(initContestsChecker(env));        
+        ctx.waitUntil(expiredContestsChecker(env));
+        ctx.waitUntil(expiredOperationsChecker(env));
     },
   };

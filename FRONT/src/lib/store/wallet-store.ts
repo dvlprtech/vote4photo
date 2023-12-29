@@ -3,7 +3,7 @@ import { connectWallet, getChain } from "$lib/utils/wallet-utils";
 import { writable, get } from "svelte/store";
 import { publicActions, type Account, type Address, type WalletClient, type PublicClient, createPublicClient, http, type EIP1193Provider, isAddressEqual, type Chain } from "viem";
 
-export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
 export const wallet = writable<WalletClient>();
 export const chain = writable<Chain | undefined>();
 
