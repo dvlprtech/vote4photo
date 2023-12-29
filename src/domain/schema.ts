@@ -16,7 +16,8 @@ export const user = sqliteTable('user', {
   role: text('role', { enum: USER_ROLES }).notNull().default('user'),
   fullName: text('full_name').notNull(),
   remainingVotes: integer('remaining_votes', { mode: 'number' }).notNull().default(0),
-  funds: real('funds').notNull().default(0),  
+  funds: real('funds').notNull().default(0),
+  lastUsedAccount: text('last_used_account').notNull(),
   creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -42,7 +43,7 @@ export const contest = sqliteTable('contest', {
   status: text('status', { enum: CONTEST_STATUS }).default('pending').notNull(),
   initTimestamp: integer('init_timestamp', { mode: 'timestamp_ms' }).notNull(),
   endTimestamp: integer('end_timestamp', { mode: 'timestamp_ms' }).notNull(),
-  winingPhotoId: integer('wining_photo_id').references(() => userPhoto.id),
+  winningPhotoId: integer('winning_photo_id').references(() => userPhoto.id),
   userDrawWinningId: integer('user_draw_winning_id').references(() => user.id),
   totalPrize: real('total_prize'),
   creationTimestamp: integer('creation_timestamp', { mode: 'timestamp_ms' }).notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -82,7 +83,7 @@ export const operations = sqliteTable('operations', {
   status: text('status', { enum: OP_STATUS }).default('pending').notNull(),
   message: text('message').notNull(),
   destinationUserId: integer('destination_user_id').references(() => user.id),
-  destinationAddress: text('destination_address'),
+  destinationAccount: text('destination_account'),
   executionTimestamp: integer('execution_timestamp', { mode: 'timestamp_ms' }),
   expirationTimestamp: integer('expiration_timestamp', { mode: 'timestamp_ms' }).notNull(),
   rejectionTimestamp: integer('rejection_timestamp', { mode: 'timestamp_ms' }),

@@ -10,11 +10,12 @@ import { DateTime } from "luxon";
 import { sendMetatransaction } from './blockchain-services';
 import { ForwardRequest, SignedForwardRequest } from '@lib/domain/blockchain';
 import { getUrlBase } from '@lib/common/hono-utils';
-import { Hex } from 'viem';
+import { Address, Hex } from 'viem';
 import { FEES } from '@lib/domain/params';
 import { checkAndUseFunds } from './account-service';
 import { Bindings } from '@lib/domain/env';
 import { createOperation } from './operation-service';
+import { ZERO_ADDRESS } from '../../FRONT/src/lib/store/wallet-store';
 
 type ContestType = typeof contest.$inferSelect;
 type UserPhotoType = typeof userPhoto.$inferSelect;
@@ -270,11 +271,11 @@ export const votePhoto = async (c: Context, contestId: number, userId: number, c
 }
 
 /**
- * Elige una foto ganadora de un concurso de manera ponderada a los votos recibidos
+ * Elige para la foto ganadora de un concurso a uno de sus votantes como próximo propietario. La elección es podenrada en función de los votos.
  * @param env Variables de entorno
  * @param contestId Id del concurso
  */
-export const drawWinnerPhotoId = async (env: Bindings, contestId: number) : Promise<ResultContestType | null> => {
+export const drawPhotoWinner = async (env: Bindings, contestId: number) : Promise<ResultContestType | null> => {
     const db = getConnection(env.DB);
     const [{maxVotes}] = await db.select({
         maxVotes: sql<number>`max(votes)`.as('maxVotes')
@@ -307,15 +308,20 @@ export const drawWinnerPhotoId = async (env: Bindings, contestId: number) : Prom
     const winningVote = Math.floor(Math.random() * totalVotes);
     const voters = await db.select({
         userId: userVotes.userId,
+        account: user.lastUsedAccount,
         votes: userVotes.votes
-    }).from(userVotes).where(eq(userVotes.contestPhotoId, winnerPhoto.contestPhotoId));
+    }).from(userVotes)
+    .innerJoin(user, eq(user.id, userVotes.userId))
+    .where(eq(userVotes.contestPhotoId, winnerPhoto.contestPhotoId));
     
     let winnerVoterId = 0;
     let currentVote = 0;
+    let destinationAccount = ZERO_ADDRESS;
     for (const v of voters) {
         currentVote += v.votes;
         if (currentVote > winningVote) {
             winnerVoterId = v.userId!;
+            destinationAccount = v.account! as Address;
             break;
         }
     }
@@ -324,13 +330,14 @@ export const drawWinnerPhotoId = async (env: Bindings, contestId: number) : Prom
     }
     const prize = totalVotes * env.MONEY_PER_VOTE;
     await db.update(contest).set({
-        winingPhotoId: winnerPhoto.photoId!, 
+        winningPhotoId: winnerPhoto.photoId!, 
         totalPrize: prize,
         userDrawWinningId: winnerVoterId})
     .where(eq(contest.id, contestId));
     createOperation(env, {
         userId: ownerId!,        
         destinationUserId: winnerVoterId,
+        destinationAccount,
         contestPhotoId: winnerPhoto.contestPhotoId!,
         type: 'accept_prize',
         message: `¡Enhorabuena! Tu foto '${title}' ha ganado el concurso con un premio de: ${prize.toFixed(2)} €. Para recibirlo, debes aceptar la transferencia de la foto.`,
@@ -374,8 +381,7 @@ export const createBuyOperations = async (env: Bindings, resultContest: ResultCo
         const voters = await db.select({
             userId: userVotes.userId,
             votes: userVotes.votes
-        }).from(userVotes).where(
-            and(
+        }).from(userVotes).where(and(
                 eq(userVotes.contestPhotoId, votedPhoto.contestPhotoId),
                 eq(userVotes.wantBuy, true)));
         

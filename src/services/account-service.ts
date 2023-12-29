@@ -32,21 +32,23 @@ const TOKEN_DURATION = 14*3600;
 export const jwtFromCredentials = async (c: Context, userEmail: string, password: string, chainId:number, account: Address) : Promise<string> => {
     assertValidChain(c, chainId);
     const db = getConnection(c.env.DB);
-    const u = await db.select({password: user.password, id: user.id, role: user.role, fullName: user.fullName}).from(user).where(eq(user.email, userEmail));
-    if (u.length === 0) {
+    const [usr] = await db.select({password: user.password, id: user.id, role: user.role, fullName: user.fullName}).from(user).where(eq(user.email, userEmail));
+    if (!usr) {
       throw new HTTPException(500, {message: 'Credenciales no válidas'});
     }
-    const userPass = u[0].password;
+    const userPass = usr.password;
     const isValid = await verifyPassword(password, userPass);
     if (!isValid) {
         throw new HTTPException(500, {message: 'Credenciales no válidas'});
     }  
+    // Actualizamos la cuenta usada, que será la que se use para recibir los NFTs
+    await db.update(user).set({lastUsedAccount: account.toLowerCase() as Address}).where(eq(user.id, usr.id));
 
     const jwtPayload = {
-        id: u[0].id,
+        id: usr.id,
         email: userEmail,
-        role: u[0].role!,
-        fullName: u[0].fullName,
+        role: usr.role!,
+        fullName: usr.fullName,
         chainId, 
         account: account.toLowerCase() as Address
     } as JwtPayload;
@@ -124,6 +126,7 @@ export const createUser = async (c: Context, userData: UserType, chainId:number,
 
     userData.role = 'user';
     userData.password = await hashPassword(userData.password);
+    userData.lastUsedAccount = account.toLowerCase() as Address;
 
     try {
         const u = await db.insert(user).values(userData).returning({id:user.id});
