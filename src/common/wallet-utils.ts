@@ -1,6 +1,6 @@
 import { createWalletClient, custom, type Account, type WalletClient, type Address, getChainContractAddress, type Chain, hexToNumber, createPublicClient, http, encodeFunctionData } from "viem";
 import { hardhat, sepolia } from "viem/chains";
-import { privateKeyToAccount } from 'viem/accounts'
+export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
 
 export const ALLOWED_CHAINS = [hardhat, sepolia];
 

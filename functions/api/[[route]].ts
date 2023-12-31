@@ -1,21 +1,15 @@
 
-import { Bindings } from '@lib/domain/env'
 import { VERSION } from '@lib/common/version'
-import { Context, Hono, Next } from 'hono'
-import { compress } from 'hono/compress'
+import { Bindings } from '@lib/domain/env'
+import { Context, Hono } from 'hono'
 
+import { SecRequest, globalErrorHandler, requestTimeLog, securityFilter } from '@lib/common/hono-utils'
 import { handle } from 'hono/cloudflare-pages'
 import { route as accountRoute } from './routes/account'
+import { route as configRoute } from './routes/config'
 import { route as contestRoute } from './routes/contest'
 import { route as operationRoute } from './routes/operation'
-import { route as configRoute } from './routes/config'
 import { route as photoRoute } from './routes/photo'
-import { hashPassword, verifyPassword } from '@lib/common/crypto-utils'
-import { loadInitData } from '@lib/domain/_local_data'
-import { SecRequest, globalErrorHandler, requestTimeLog, securityFilter } from '@lib/common/hono-utils'
-import PhotoNFT from "@lib/contracts/PhotoNFT.json";
-import V4PForwarder from "@lib/contracts/V4PForwarder.json";
-import { getDomain } from '@lib/services/blockchain-services'
 
 
 const API_PREFIX = '/api';
@@ -39,9 +33,7 @@ app.onError(globalErrorHandler);
 
 
 app.get('/', async (c: Context) => {
-  await getDomain(c);
-  //console.log('PhotoNFT:', PhotoNFT.abi);
-  //console.log('V4PForwarder:', V4PForwarder.abi);
+
   return c.json({
     app: 'Vote4Photo',
     version: VERSION
