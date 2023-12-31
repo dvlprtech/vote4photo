@@ -15,7 +15,7 @@ import { FEES } from '@lib/domain/params';
 import { checkAndUseFunds } from './account-service';
 import { Bindings } from '@lib/domain/env';
 import { createOperation } from './operation-service';
-import { ZERO_ADDRESS } from '../../FRONT/src/lib/store/wallet-store';
+import { ZERO_ADDRESS } from '@lib/common/wallet-utils';
 
 type ContestType = typeof contest.$inferSelect;
 type UserPhotoType = typeof userPhoto.$inferSelect;

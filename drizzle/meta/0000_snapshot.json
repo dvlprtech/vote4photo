@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "sqlite",
-  "id": "8501f67f-ebf0-46cd-bafd-008b449ed04a",
+  "id": "6af7bebc-a162-4b52-af6c-ef62cdb175dd",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "contest": {
@@ -32,7 +32,7 @@
           "name": "status",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false,
           "default": "'pending'"
         },
@@ -50,8 +50,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "wining_photo_id": {
-          "name": "wining_photo_id",
+        "winning_photo_id": {
+          "name": "winning_photo_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -66,9 +66,9 @@
         },
         "total_prize": {
           "name": "total_prize",
-          "type": "integer",
+          "type": "real",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "creation_timestamp": {
@@ -82,12 +82,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "contest_wining_photo_id_user_photo_id_fk": {
-          "name": "contest_wining_photo_id_user_photo_id_fk",
+        "contest_winning_photo_id_user_photo_id_fk": {
+          "name": "contest_winning_photo_id_user_photo_id_fk",
           "tableFrom": "contest",
           "tableTo": "user_photo",
           "columnsFrom": [
-            "wining_photo_id"
+            "winning_photo_id"
           ],
           "columnsTo": [
             "id"
@@ -145,7 +145,7 @@
         },
         "sale_price": {
           "name": "sale_price",
-          "type": "integer",
+          "type": "real",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -277,44 +277,71 @@
           "name": "user_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "contest_photo_id": {
           "name": "contest_photo_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "type": {
           "name": "type",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "status": {
           "name": "status",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false,
           "default": "'pending'"
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "destination_user_id": {
+          "name": "destination_user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "destination_account": {
+          "name": "destination_account",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "execution_timestamp": {
           "name": "execution_timestamp",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "notNull": false,
+          "autoincrement": false
         },
         "expiration_timestamp": {
           "name": "expiration_timestamp",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "rejection_timestamp": {
+          "name": "rejection_timestamp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "rejection_reason": {
@@ -360,6 +387,19 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "operations_destination_user_id_user_id_fk": {
+          "name": "operations_destination_user_id_user_id_fk",
+          "tableFrom": "operations",
+          "tableTo": "user",
+          "columnsFrom": [
+            "destination_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -393,7 +433,7 @@
           "name": "role",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false,
           "default": "'user'"
         },
@@ -402,26 +442,10 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "accounts": {
-          "name": "accounts",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
-        "creation_timestamp": {
-          "name": "creation_timestamp",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "remainig_votes": {
-          "name": "remainig_votes",
+        "remaining_votes": {
+          "name": "remaining_votes",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -435,9 +459,32 @@
           "notNull": true,
           "autoincrement": false,
           "default": 0
+        },
+        "last_used_account": {
+          "name": "last_used_account",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "creation_timestamp": {
+          "name": "creation_timestamp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "user_email_unique": {
+          "name": "user_email_unique",
+          "columns": [
+            "email"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
@@ -459,8 +506,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "photo_uri": {
-          "name": "photo_uri",
+        "photo_key": {
+          "name": "photo_key",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -473,8 +520,22 @@
           "notNull": true,
           "autoincrement": false
         },
-        "token_address": {
-          "name": "token_address",
+        "size": {
+          "name": "size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "md5": {
+          "name": "md5",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account": {
+          "name": "account",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -517,7 +578,22 @@
           "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "user_photo_photo_key_unique": {
+          "name": "user_photo_photo_key_unique",
+          "columns": [
+            "photo_key"
+          ],
+          "isUnique": true
+        },
+        "user_photo_md5_unique": {
+          "name": "user_photo_md5_unique",
+          "columns": [
+            "md5"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "user_photo_user_id_user_id_fk": {
           "name": "user_photo_user_id_user_id_fk",
