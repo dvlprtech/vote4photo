@@ -18,7 +18,7 @@ export const requestTimeLog = async (c: Context, next: Next) => {
 export const securityFilter = (config: {publicPathsPrefix?: SecRequest[]}) => {
   const publicPrefix = config.publicPathsPrefix || [];
   return async (c: Context, next: Next) => {
-    const pathMatch = publicPrefix.find(([method, prefix]: SecRequest) => {
+    const publicPathMatch = publicPrefix.find(([method, prefix]: SecRequest) => {
       if (c.req.path === prefix) {
         return method === c.req.method;
       }
@@ -27,7 +27,7 @@ export const securityFilter = (config: {publicPathsPrefix?: SecRequest[]}) => {
       }
       return false;
     });
-    if (!pathMatch) {
+    if (!publicPathMatch) {
       const token = extractBearerToken(c);
       const payload = await validateJWT(c, token);
       c.set('user', payload);

@@ -12,6 +12,13 @@ type eip712DomainType = [string, string, string, number, string, string, string[
 
 export type TxType = 'mint' | 'transfer';
 
+export type DomainType = {
+  name: string,
+  version: string,
+  chainId: number,
+  verifyingContract: string
+}
+
 export const contracts = {
     abiPhotoNFT: [...PhotoNFT.abi] as const,
     abiV4PForwarder: [...V4PForwarder.abi] as const
@@ -116,7 +123,7 @@ export const getMessageSeralizable = (message: ForwardRequest) : ForwardRequest 
   return serializableMessage;
 }
 
-export const getDomain = async (c: Context) => {
+export const getDomain = async (c: Context) : Promise<DomainType> => {
     const publicClient = createPublicClient({
         chain: getChain(c.env.CHAIN_ID),
         transport: http()
@@ -126,8 +133,6 @@ export const getDomain = async (c: Context) => {
         address: c.env.V4P_FORWARDER,
         abi: contracts.abiV4PForwarder
     });
-    console.log('chain', publicClient.chain);
-    console.log('forwarder', forwarder.read);
     const [ _, name, version, chainId, verifyingContract ] = await publicClient.readContract({
                                                                 address: c.env.V4P_FORWARDER,
                                                                 abi: contracts.abiV4PForwarder,

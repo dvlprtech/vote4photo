@@ -3,18 +3,18 @@
 </svelte:head>
 
 <script lang="ts">
+	import { executedOperations, pendingOperations, rejectedOperations } from '$lib/store/operations-store';
 	import { wallet, walletAccount } from '$lib/store/wallet-store';
+	
 	import { connectWallet, existsWallet, getWalletAccount } from '$lib/utils/wallet-utils';
-	import { Button } from 'flowbite-svelte';
 	import { writable } from 'svelte/store';
-	import { createWalletClient, custom } from 'viem'
-	import { mainnet } from 'viem/chains'
+	import ListPastOperations from '../operations/list-past-operations.svelte';
+	import ListPendingOperations from '../operations/list-pending-operations.svelte';
+	import { Button } from 'flowbite-svelte';
 
 	let withWallet = writable(existsWallet());
-	// const client = createWalletClient({
-	// chain: mainnet,
-	// 	transport: custom(window.ethereum)
-	// });	
+	
+	
 	const accessWallet = async () => {
 		console.log('Connecting to window.ethereum:', (window as any).ethereum);
 		wallet.set(connectWallet());
@@ -24,17 +24,14 @@
 </script>
 
 <div>
-	<h1 class="text-xl font-bold">Dummy page??</h1>
-    {#if $withWallet}
-		<Button on:click={accessWallet}>Connect wallet</Button>
-    {:else}
-		<h1 class="text-error-500">No tenemos wallet en el navegador!!!</h1>
-    {/if}
-	<ul>
-		<li>Wallet: {$wallet?.name}</li>
-		<li>Wallet chain: {$wallet?.chain?.name}</li>
-		<li>Account: {$walletAccount}</li>
-	</ul>
-	
+	{#if $pendingOperations.length === 0}
+	<div class="w-full flex flex-col my-10 items-center gap-5">
+		<h3 class="font-semibold text-lg text-center">No tienes operaciones pendientes, puedes visitar los concursos actuales para votar por tus fotos favoritas</h3>
+		<Button outline  size="xl" href="/app/contests" color="primary" >Ir a Concursos</Button>
+	</div>
+	{:else}
+	<ListPendingOperations />
+	{/if}
+	<ListPastOperations executedOperations={$executedOperations} rejectedOperations={$rejectedOperations} />
 
 </div>

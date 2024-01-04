@@ -5,6 +5,7 @@
 		Badge,
 		Button,
 		Card,
+		Checkbox,
 		Helper,
 		Img,
 		Input,
@@ -40,9 +41,11 @@
 	export let contestId: number;
 	export let selectedPhoto: ContestPhoto | undefined;
 	let votes = 1;
+	let wantBuy = false;
 	$: voting = false;
 	$: enoughVotes = $profile?.remainingVotes > votes;
 	$: photoUrl = `/api/photo/${selectedPhoto?.photoKey}`;
+	$: contestPhotoId = selectedPhoto?.contestPhotoId;
 
 	const vote4Photo = async () => {
 		if (voting) return;
@@ -58,7 +61,8 @@
 		const r = await fetchProxy(`/api/contest/${contestId}/vote`, {
 			method: 'POST',
 			payload: {
-				contestPhotoId: selectedPhoto!.id,
+				contestPhotoId,
+				wantBuy,
 				votes
 			}
 		});
@@ -99,6 +103,13 @@
 				votes = 1;}}>
 				<Fa icon={faArrowsDownToLine}  size="md" /><div class="h-4"></div>
 			</Button>
+		</div>
+		<div class="sm:col-span-2">
+			<Checkbox
+				bind:checked={wantBuy}
+				color="primary"
+				aria-describedby="helper-wantbuy">Deseo comprar la foto</Checkbox>
+			<Helper id="helper-wantbuy" class="ps-6">Se sortea entre los votantes interesados el derecho a compra</Helper>
 		</div>
 		<Helper class="text-sm self-center">
 			Votos disponibles: <Badge color="primary" class="text-sm">{$profile?.remainingVotes}</Badge>

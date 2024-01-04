@@ -1,19 +1,16 @@
 <script lang="ts">	
   	
-	import { page } from "$app/stores";
-	import { goto } from '$app/navigation';
-	import { Badge, Button, Card, Img, Input, Label, Modal, NumberInput, Select, Spinner } from "flowbite-svelte";
-	import Fa from "svelte-fa";
-	import { faImages, faPlus, faRefresh, faStar } from "@fortawesome/free-solid-svg-icons";
-	import { onMount } from "svelte";
-	import { writable } from "svelte/store";
 	import type { ContestListing } from "$lib/domain/contests";
-	import { fetchProxy } from "$lib/utils/fetch-utils";
-	import NewContest from "./new-contest.svelte";
-	import { DateTime } from "luxon";
 	import { isAdminUser } from "$lib/store/session-store";
+	import { fetchProxy } from "$lib/utils/fetch-utils";
 	import { DATETIME_FULL_TS } from "$lib/utils/format-utils";
-	import VotePhoto from "./[contestId]/vote-photo.svelte";
+	import { faImages, faPlus, faRefresh } from "@fortawesome/free-solid-svg-icons";
+	import { Badge, Button, Card } from "flowbite-svelte";
+	import { DateTime } from "luxon";
+	import { onMount } from "svelte";
+	import Fa from "svelte-fa";
+	import { writable } from "svelte/store";
+	import FormContest from "./form-contest.svelte";
 
 	const openModal = writable(false);
 	const contests = writable<ContestListing[]>([]);
@@ -89,7 +86,7 @@
 {/each}
 </div>
 
-<NewContest openModal={$openModal} on:created={newContestCreated} on:close={closedNewContestDialog} />
+<FormContest openModal={$openModal} on:created={newContestCreated} on:close={closedNewContestDialog} />
 
 
 
