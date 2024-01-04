@@ -2,7 +2,13 @@ import { DateTime } from "luxon";
 	
 export const DATETIME_FULL_TS : Intl.DateTimeFormatOptions = {...DateTime.DATETIME_MED, hourCycle: 'h24'}
 
-export const localDateTime = (isoDate: string) : string => {
+export const localDateTime = (isoDate?: string | Date) : string => {
+    if (!isoDate) {
+        return '';
+    }
+    if (isoDate instanceof Date) {
+        return DateTime.fromJSDate(isoDate).toLocaleString(DATETIME_FULL_TS);
+    }
     return DateTime.fromISO(isoDate).toLocaleString(DATETIME_FULL_TS);
 }
 

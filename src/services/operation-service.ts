@@ -2,11 +2,11 @@ import { ForwardRequest, SignedForwardRequest } from '@lib/domain/blockchain';
 import { getConnection } from "@lib/domain/db-conn";
 import { Bindings } from '@lib/domain/env';
 import { OperationStatusType, OperationTypeType, contest, contestPhoto, operations, user, userPhoto, userVotes } from "@lib/domain/schema";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, or, sql } from "drizzle-orm";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { Address } from 'viem';
-import { getMessageSeralizable, getMessageToSignForNFTTransfer, getNonce, sendMetatransaction } from './blockchain-services';
+import { Address, Hex } from 'viem';
+import { DomainType, getDomain, getMessageSeralizable, getMessageToSignForNFTTransfer, getNonce, sendMetatransaction } from './blockchain-services';
 
 const EXPIRATION_BY_TYPE : Record<OperationTypeType, number> = {
     accept_prize: 7*24*3600*1000,
@@ -39,7 +39,9 @@ type OperationBasicData = {
     status: OperationStatusType,
     message: string,
     expirationTimestamp?: string | Date,
+    rejectionReason: string | null,
     photoId: number,
+    salePrice: number,
     title: string,
     photoKey: string,
 }
@@ -62,16 +64,25 @@ type OperationDetailData = {
     }
 }
 
+type DataToSign = {
+    messageToSign: ForwardRequest, 
+    domain: DomainType
+}
+
 export const listOwnOperations = async (c: Context, userId: number) : Promise<OperationBasicData[]> => {
     const db = getConnection(c.env.DB);
-    
+    const dateLimit = new Date(Date.now() - 7*24*3600*1000);
     const ownOperations = await db.select({
         id: operations.id,
         type: operations.type,
         status: operations.status,
         message: operations.message,
         expirationTimestamp: operations.expirationTimestamp,
+        executionTimestamp: operations.executionTimestamp,
+        rejectionTimestamp: operations.rejectionTimestamp,
+        rejectionReason: operations.rejectionReason,
         photoId: userPhoto.id,
+        salePrice: contestPhoto.salePrice,
         title: userPhoto.title,
         photoKey: userPhoto.photoKey,
     }).from(operations)
@@ -79,8 +90,12 @@ export const listOwnOperations = async (c: Context, userId: number) : Promise<Op
     .innerJoin(userPhoto, eq(userPhoto.id, contestPhoto.photoId))
     .where(and(
         eq(operations.userId, userId),
-        eq(operations.status, 'pending')
-    ));
+        or(
+            eq(operations.status, 'pending'),
+            and(eq(operations.status, 'executed'), gt(operations.executionTimestamp, dateLimit)),
+            and(eq(operations.status, 'rejected'), gt(operations.rejectionTimestamp, dateLimit)),
+        )
+    )).orderBy(desc(operations.id));
     return ownOperations;
 }
 
@@ -128,7 +143,7 @@ export const getOperation = async (c: Context, operationId: number) : Promise<Op
         throw new HTTPException(404, {message: 'Operación no encontrada'});
     }
     const userId = c.get('user').id;
-    if (operation.userId !== userId) {
+    if (operation.userId !== userId && c.get('role') !== 'admin') {
         throw new HTTPException(503, {message: 'Acceso denegado'});
     }
     const [photo] = await db.select({
@@ -144,7 +159,7 @@ export const getOperation = async (c: Context, operationId: number) : Promise<Op
     return operation;
 }
 
-export const getDataToSign = async (c: Context, operationId: number) : Promise<ForwardRequest> => {
+export const getDataToSign = async (c: Context, operationId: number) : Promise<DataToSign> => {
     const db = getConnection(c.env.DB);
     const userId = c.get('user').id;
     const [operation] = await db.select().from(operations).where(eq(operations.id, operationId));
@@ -179,8 +194,8 @@ export const getDataToSign = async (c: Context, operationId: number) : Promise<F
     const rawMessageToSign = await getMessageToSignForNFTTransfer(userAccount, contractAddress, destinationAccount, 
         BigInt(photoData.tokenId), nonce);
     const messageToSign = getMessageSeralizable(rawMessageToSign);
-
-    return messageToSign;
+    const domain = await getDomain(c);
+    return {messageToSign, domain};
 }
 
 export const executeWithSignature = async (c: Context, operationId: number, signedMessage: SignedForwardRequest) : Promise<Partial<OperationType>> => {

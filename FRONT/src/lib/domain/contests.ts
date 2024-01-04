@@ -11,11 +11,13 @@ export interface ContestBase {
 }
 
 export interface ContestPhoto {
-    id: number;
+    contestPhotoId: number;
+    photoId: number;
     title: string;
     userId: number;
     photoKey: string;
     price: number;
+    ownVotes: number;
 }
 
 export interface ContestListing extends ContestBase {

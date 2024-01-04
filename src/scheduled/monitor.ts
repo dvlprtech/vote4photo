@@ -61,7 +61,7 @@ export const expiredOperationsChecker = async (env: Bindings) => {
       const [updatedFields] = await db.update(operations).set({
         status: 'rejected',
         rejectionTimestamp: sql`CURRENT_TIMESTAMP`,
-        rejectionReason: 'Caducada'
+        rejectionReason: 'Operación caducada'
       }).where(eq(operations.id, o.id)).returning({        
         status: operations.status,
         rejectionTimestamp: operations.rejectionTimestamp,

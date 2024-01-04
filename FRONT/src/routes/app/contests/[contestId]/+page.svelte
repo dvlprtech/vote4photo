@@ -6,7 +6,7 @@
 	import { onMount } from "svelte";
 	import { Button, Card } from "flowbite-svelte";
 	import Fa from "svelte-fa";
-	import { faCirclePlay, faImages, faPlusSquare, faStar } from "@fortawesome/free-regular-svg-icons";
+	import { faCirclePlay, faEdit, faImages, faPlusSquare, faStar } from "@fortawesome/free-regular-svg-icons";
 	import { faCircle, faPlus, faUpload } from "@fortawesome/free-solid-svg-icons";
 	import MyCard from "$lib/ui/my-card.svelte";
 	import { DATETIME_FULL_TS } from "$lib/utils/format-utils";
@@ -16,6 +16,7 @@
 	import NewPhoto from "./new-photo.svelte";
 	import VotePhoto from "./vote-photo.svelte";
 	import { firstConnect, walletAccount } from "$lib/store/wallet-store";
+	import FormContest from "../form-contest.svelte";
 
 	export let data: PageData;
 
@@ -24,10 +25,14 @@
 	$: photos = contestData.photos || [];
 	$: openModalPhoto = false;
 	$: openModalVote = false;
+	$: openModalContest = false;
 	$: photoToBeVoted = undefined as ContestPhoto | undefined;
 	$: clickedButton = undefined as HTMLButtonElement | undefined;
 
-
+	const contestUpdated = async (evt: CustomEvent<ContestDetail>) => {
+		console.log('contestUpdated', evt.detail);
+		contestData = {...contestData,  ...evt.detail};		
+	}
 	const addPhoto = async () => {
 		openModalPhoto = true;
 
@@ -38,6 +43,7 @@
 			contestData = {...contestData, ...(await r.json())};
 		}
 	}
+	
 	const photoCreated = async (photoData: CustomEvent<ContestPhoto>) => {
 		console.log('photoCreated', photoData);
 		console.log('photoCreated', photoData.detail);
@@ -47,14 +53,29 @@
 	const closedPhotoDialog = async () => {
 		openModalPhoto = false;
 	}
+	const closedContestDialog = async () => {
+		openModalContest = false;
+	}
 	const photoVoted = async (event : CustomEvent<{contestPhotoId: number, votes: number}>) => {
-		console.log('photoVoted', event.detail);	
-		console.log('button clicked', clickedButton);	
+		const {contestPhotoId, votes} = event.detail;
+		console.log('photoVoted', event.detail);
+		const photo = photos.find(p => p.contestPhotoId === contestPhotoId);
+		if (photo) {
+			photo.ownVotes = (photo.ownVotes || 0) + votes;
+			console.log('voted photo:', photo);
+			photoToBeVoted = undefined;
+			clickedButton = undefined;
+			photos = [...photos];
+		}
 	}
 	const openVotePhotoDialog = async (photo: ContestPhoto, button: EventTarget | null) => {
+		console.log('photo:', photo);
 		photoToBeVoted = photo;
 		openModalVote = true;
 		clickedButton = button as HTMLButtonElement;
+	}
+	const modifyContest = async () => {
+		openModalContest = true;
 	}
 
 </script>
@@ -62,15 +83,18 @@
 <div class="flex flex-col gap-2  shadow-md rounded-sm p-2 bg-surface-200">
 	<div class="flex flex-row gap-2 justify-between">
 		<h1 class="text-xl font-semibold">Concurso: {contestData.title}</h1>
-		<div class="flex flex-row gap-2 justify-end">
-			
-				{#if $isAdminUser && contestData.status === 'pending'}
-					<Button outline={true} size="xs" on:click={initContest} color="primary">
-						<Fa icon={faCirclePlay} class="w-5 h-5 mr-1" />
-						Iniciar ahora
-					</Button> 
-				{/if}
-				{#if contestData.status !== 'finished'}
+		<div class="flex flex-row gap-2 justify-end">			
+			{#if $isAdminUser && contestData.status === 'pending'}
+			<Button outline={true} size="xs" on:click={initContest} color="primary">
+				<Fa icon={faCirclePlay} class="w-5 h-5 mr-1" />
+				Iniciar ahora
+			</Button> 
+			<Button outline={true} size="xs" on:click={modifyContest} color="primary">
+				<Fa icon={faEdit} class="w-5 h-5 mr-1" />
+				Modificar
+			</Button> 
+		{/if}
+{#if contestData.status !== 'finished'}
 				<Button outline={true} size="xs" on:click={addPhoto} class="button-secondary">
 					<Fa icon={faPlus} class="w-5 h-5 mr-1" />
 					Nueva foto
@@ -90,7 +114,7 @@
 </div>
 <div class="flex flex-row gap-2 flex-wrap photos mt-3">
 	{#each photos as photo}
-	<MyCard imgSrc="/api/photo/{photo.photoKey}" >
+	<MyCard imgSrc="/api/photo/{photo.photoKey}" badgeContent={photo.ownVotes ?? null} >
 			<h5 class="mb-2 text-lg font-semibold tracking-tight">{photo.title}</h5>
 			{#if photo.price}
 				<p class="text-sm">Precio de venta: <strong>{photo.price} €</strong></p>
@@ -119,6 +143,7 @@
 
 <VotePhoto {contestId} selectedPhoto={photoToBeVoted} openModal={openModalVote} on:voted={photoVoted} on:close={() => openModalVote = false} />
 
+<FormContest {contestData} openModal={openModalContest} on:updated={contestUpdated} on:close={closedContestDialog} />
 
 <style>
 	div.photos > div {
