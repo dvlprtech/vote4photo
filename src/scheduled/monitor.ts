@@ -46,7 +46,10 @@ export const initContestsChecker = async (env: Bindings) => {
       await db.update(contest).set({ status: 'active' }).where(eq(contest.id, c.id));
       console.log(`Contest ${c.id} - ${c.title} has been initiated!`);
     }
+  } else {
+    console.log('<--- No contests to init');
   }
+  
 };
 
 export const expiredOperationsChecker = async (env: Bindings) => {

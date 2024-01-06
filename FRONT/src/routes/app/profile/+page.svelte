@@ -42,7 +42,7 @@
 		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
 		const data = {} as Record<string, unknown>;
-		if (profile.fullName !== formData.get('fullName')) {
+		if (profile.fullName !== formData.get('fullName') && formData.get('fullName')) {
 			data.fullName = formData.get('fullName');
 		}
 		if (formData.get('password')) {
@@ -57,11 +57,12 @@
 			return;
 		}
 		console.log('saveProfile', data);
-		const r = await fetchProxy('/api/profile', {
-			method: 'POST',
+		const r = await fetchProxy(`/api/account/${$userId}`, {
+			method: 'PUT',
 			payload: data
 		});
 		if (r.status === 200) {
+			// Empty on purpose
 		}
 	};
 	$: modalFundsOpened = false;

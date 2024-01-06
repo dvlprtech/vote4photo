@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "wrangler pages dev ./pages --compatibility-date=2023-11-24 --compatibility-flags=nodejs_compat --d1 v4b-db",
-    "dev-scheduled": "wrangler dev src/scheduled/monitor.ts --test-scheduled  --compatibility-date=2023-11-24 --compatibility-flags=nodejs_compat",
-    "deploy": "wrangler pages deploy ./pages"
+    "dev-scheduled": "wrangler dev src/scheduled/main.ts --test-scheduled  --compatibility-date=2023-11-24 --compatibility-flags=nodejs_compat",
+    "deploy": "wrangler pages deploy ./pages",
+    "logs": "wrangler pages deployment tail --project-name vote4photo",
+    "deploy-cron": "cd src/scheduled && wrangler deploy ./main.ts",
+    "logs-cron": "cd src/scheduled && wrangler tail v4p-cron"
   },
   "dependencies": {
     "@tsndr/cloudflare-worker-jwt": "^2.3.2",
@@ -18,6 +21,6 @@
     "@cloudflare/workers-types": "^4.20231121.0",
     "@types/luxon": "^3.3.5",
     "drizzle-kit": "^0.20.4",
-    "wrangler": "^3.22.2"
+    "wrangler": "^3.22.3"
   }
 }

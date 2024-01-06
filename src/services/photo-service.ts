@@ -30,7 +30,6 @@ export const getPhoto = async (c: Context, photoKey: string) : Promise<Response>
     return new Response(img.body, {headers});    
 }
 
-
 /**
  * 
  * @param c 
