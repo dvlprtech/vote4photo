@@ -10,10 +10,9 @@ import { assertValidChain } from "./blockchain-services";
 
 type UserType = typeof user.$inferSelect;
 
-const UPDATABLE_PROFILE_FIELDS = ['email', 'fullName', 'password'];
+const UPDATABLE_PROFILE_FIELDS = ['fullName', 'password'];
 
 type UpdatableProfileType = {
-    email?: string,
     fullName?: string,
     password?: string
 };
@@ -166,9 +165,6 @@ export const updateProfile = async (c: Context, userid: number, profileData: Upd
         return acc;
     }, {} as UpdatableProfileType);
     
-    console.log(profileData);
-    console.log(dataToUpdate);
-    
     try {
         await db.update(user).set(dataToUpdate).where(eq(user.id, userid));
         delete dataToUpdate.password;
@@ -181,8 +177,8 @@ export const updateProfile = async (c: Context, userid: number, profileData: Upd
 
 export const addFunds = async (c: Context<any, any, {}>, userId: number, amount: number): Promise<{funds: number}> => {
     const db = getConnection(c.env.DB);
-    const result = await db.update(user).set({funds:sql`funds+${amount}`}).where(eq(user.id, userId)).returning({funds:user.funds});
-    return { ...result[0] };
+    const [result] = await db.update(user).set({funds:sql`funds+${amount}`}).where(eq(user.id, userId)).returning({funds:user.funds});
+    return { ...result };
 }
 
 const _calculateVotesPrice = async (c: Context<any, any, {}>, amount: number): Promise<number> => {
@@ -205,9 +201,9 @@ export const buyVotes = async (c: Context<any, any, {}>, userId: number, amount:
         throw new HTTPException(403, {message: `No hay suficientes fondos. Es necesario: ${price} €`});
     }
     const votes = currentUser[0].remainigVotes + amount;
-    const result = await db.update(user).set({remainingVotes:votes, funds:sql`funds-${price}`}).where(eq(user.id, userId))
+    const [result] = await db.update(user).set({remainingVotes:votes, funds:sql`funds-${price}`}).where(eq(user.id, userId))
         .returning({remainingVotes:user.remainingVotes, funds: user.funds});
-    return { ...result[0] };
+    return { ...result };
 }
   
 /**

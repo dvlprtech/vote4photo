@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "baseUrl": "../..",
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "lib": [
+      "ESNext", "DOM.Iterable", "DOM"
+    ],
+    "types": [
+      "@cloudflare/workers-types"
+    ],
+    "paths": {
+      "@lib/*": ["src/*"]
+    }
+  }
+}

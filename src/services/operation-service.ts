@@ -330,7 +330,7 @@ export const rejectOperation = async (c: Context, operationId: number, rejection
         throw new HTTPException(400, {message: 'Operación no puede rechazarse'});
     }
 
-    const execution = await db.update(operations).set({
+    const [execution] = await db.update(operations).set({
         status: 'rejected',
         rejectionTimestamp: sql`CURRENT_TIMESTAMP`,        
         rejectionReason
@@ -338,7 +338,7 @@ export const rejectOperation = async (c: Context, operationId: number, rejection
     prepareActionsForRejectedOperation(c.env, operation);
     return {
         id: operationId,
-        status: execution[0].status!
+        status: execution.status!
     };
 }
 

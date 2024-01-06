@@ -26,7 +26,7 @@ route.post('', async (c: Context) => {
 /**
  * Crea un nuevo concurso
  */
-route.post('/:contestId', async (c: Context) => {
+route.put('/:contestId', async (c: Context) => {
   verifyAdminUser(c);
   const contestId = parseInt(c.req.param('contestId'));
   const contestData = await getJsonBody(c);

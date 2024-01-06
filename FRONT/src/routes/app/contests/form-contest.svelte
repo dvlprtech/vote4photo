@@ -51,7 +51,7 @@
 		};
 		const url = contestId ? `/api/contest/${contestId}` : '/api/contest';
 		const r = await fetchProxy(url, {
-			method: 'POST',
+			method: contestId ? 'PUT' : 'POST',
 			payload: data
 		});
 		if (r.status === 200) {

@@ -10,9 +10,10 @@ type ScheduledEvent = {
 
 export default {
     async scheduled(event: ScheduledEvent, env: Bindings, ctx: {waitUntil: (promise: Promise<unknown>) => void}) {
-        console.log('EVENT: ', event);
+        console.log('EVENT: ', event.cron, event.type, new Date(event.scheduledTime));
+        console.log('ENV: ', env); 
         ctx.waitUntil(initContestsChecker(env));        
-        ctx.waitUntil(expiredContestsChecker(env));
-        ctx.waitUntil(expiredOperationsChecker(env));
+        //ctx.waitUntil(expiredContestsChecker(env));
+        //ctx.waitUntil(expiredOperationsChecker(env));
     },
   };

@@ -121,7 +121,7 @@ export const updateContest = async (c: Context, contestId: number, newData: Upda
     contestData.description = newData.description ?? contestData.description;
 
     const [updatedData] = await db.update(contest).set(contestData).where(eq(contest.id, contestId)).returning({ initTimestamp: contest.initTimestamp, endTimestamp: contest.endTimestamp, title: contest.title, description: contest.description });
-    return { ...updatedData };
+    return { ...updatedData, id: contestId };
 }
 
 export const initContest = async (c: Context, contestId: number): Promise<Partial<ContestType>> => {
@@ -137,16 +137,16 @@ export const initContest = async (c: Context, contestId: number): Promise<Partia
     contestData.initTimestamp = new Date();
     contestData.status = 'active';
 
-    const result = await db.update(contest).set(contestData).where(eq(contest.id, contestId)).returning({ initTimestamp: contest.initTimestamp, status: contest.status });
-    return { ...result[0] };
+    const [result] = await db.update(contest).set(contestData).where(eq(contest.id, contestId)).returning({ initTimestamp: contest.initTimestamp, status: contest.status });
+    return { ...result };
 }
 
 
 export const getContest = async (c: Context, contestId: number): Promise<Partial<ContestType & { photos: any[] }>> => {
     const userId = c.get('user').id;
     const db = getConnection(c.env.DB);
-    const curentContest = await db.select().from(contest).where(eq(contest.id, contestId));
-    if (curentContest.length === 0) {
+    const [currentContest] = await db.select().from(contest).where(eq(contest.id, contestId));
+    if (!currentContest) {
         throw new HTTPException(404, { message: 'Concurso no encontrado' });
     }
     //db.select().from(users).leftJoin(pets, eq(users.id, pets.ownerId))
@@ -156,17 +156,15 @@ export const getContest = async (c: Context, contestId: number): Promise<Partial
                                         ${userVotes.contestPhotoId} = ${contestPhoto.id})`.as('ownVotes')
     const contestPhotos = await db.select({
         contestPhotoId: contestPhoto.id,
-        photoId: contestPhoto.photoId,
-        votes: contestPhoto.votes,
-        userId: userPhoto.userId,
         photoKey: userPhoto.photoKey,
         title: userPhoto.title,
         size: userPhoto.size,
         price: contestPhoto.salePrice,
+        photoId: contestPhoto.photoId,        
         ownVotes: ownVotesQuery,
     }).from(contestPhoto).innerJoin(userPhoto, eq(userPhoto.id, contestPhoto.photoId)).where(eq(contestPhoto.contestId, contestId));
 
-    return { ...curentContest[0], photos: contestPhotos };
+    return { ...currentContest, photos: contestPhotos };
 }
 
 
