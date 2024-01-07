@@ -30,18 +30,9 @@ const TOKEN_DURATION = 14*3600;
 
 export const jwtFromCredentials = async (c: Context, userEmail: string, password: string, chainId:number, account: Address) : Promise<string> => {
     assertValidChain(c, chainId);
-    console.log('Valid chain:', chainId);
 
     const db = getConnection(c.env.DB);
-    let usr;
-    try {
-        const [usr1] = await db.select({password: user.password, id: user.id, role: user.role, fullName: user.fullName}).from(user).where(eq(user.email, userEmail));
-        usr = usr1;
-        console.log('User read:', userEmail, usr.fullName);
-    } catch(err: unknown) {
-        console.warn('Error getting user:', err);
-        throw new HTTPException(500, {message: 'Error obteniendo el usuario'});
-    }
+    const [usr] = await db.select({password: user.password, id: user.id, role: user.role, fullName: user.fullName}).from(user).where(eq(user.email, userEmail));
     
     if (!usr) {
       throw new HTTPException(500, {message: 'Credenciales no válidas'});
