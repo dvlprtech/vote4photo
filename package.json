@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "wrangler pages dev ./pages --compatibility-date=2023-11-24 --compatibility-flags=nodejs_compat --d1 v4b-db",
-    "dev-scheduled": "wrangler dev src/scheduled/main.ts --test-scheduled  --compatibility-date=2023-11-24 --compatibility-flags=nodejs_compat",
-    "deploy": "wrangler pages deploy ./pages",
+    "dev-cron": "wrangler dev src/scheduled/main.ts --test-scheduled",
+    "deploy": "wrangler pages deploy ./pages --project-name vote4photo",
     "logs": "wrangler pages deployment tail --project-name vote4photo",
-    "deploy-cron": "cd src/scheduled && wrangler deploy ./main.ts",
+    "deploy-cron": "wrangler deploy --name vp4-cron ./src/scheduled/main.ts",
     "logs-cron": "cd src/scheduled && wrangler tail v4p-cron"
   },
   "dependencies": {

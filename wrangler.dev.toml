@@ -1,18 +1,20 @@
 name = "vote4photo"
 
 compatibility_flags = [ "nodejs_compat" ]
-compatibility_date = "2023-11-24"
+compatibility_date = "2023-12-01"
 
 [vars]
-API_ACCOUNT_ID = "0f*********"
+ALLOW_REGISTER = true
 SECRET = "dev-mode"
 AUTH_KEY_SECRET = '73q*********'
 BUCKET_NAME = 'photos-dev'
 CHAIN_ID = '0x7a69'
+#Sepolia: CHAIN_ID = 'aa36a7'
 V4P_ACCOUNT = '0x1a***********'
 V4P_ACCOUNT_PRIV_KEY = '0x01**********'
 V4P_CONTRACT = '0x24*******'
 V4P_FORWARDER = '0x32*******'
+MONEY_PER_VOTE = 0.15
 
 [[d1_databases]]
 binding = "DB" # i.e. available in your Worker on env.DB
@@ -26,5 +28,5 @@ bucket_name = 'photos-dev'
 
 [triggers]
 # Schedule cron triggers:
-# - At every 3rd minute
+# - At every minute
 crons = [ "* * * * *" ]

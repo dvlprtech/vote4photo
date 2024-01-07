@@ -119,6 +119,11 @@ export const getProfile = async (c: Context, userid: number) : Promise<Partial<U
 }
 
 export const createUser = async (c: Context, userData: UserType, chainId:number, account: Address) : Promise<{id: number, jwt: string}> => {
+    const isRegisterAvailable = `${c.env.ALLOW_REGISTER}` === 'true';
+    if (!isRegisterAvailable) {
+        throw new HTTPException(403, {message: 'Actualmente no se permite el registro de nuevos usuarios'});
+    }
+    
     assertValidChain(c, chainId);
     
     const db = getConnection(c.env.DB);

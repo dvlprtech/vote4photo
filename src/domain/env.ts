@@ -1,5 +1,6 @@
 export type Bindings = {
     DB: D1Database,
+    ALLOW_REGISTER: boolean,
     PHOTO_BUCKET: R2Bucket,
     CHAIN_ID: string,
     BUCKET_NAME: string,
