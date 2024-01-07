@@ -2,7 +2,7 @@
   	
 	import { page } from "$app/stores";
 	import { fetchProxy } from "$lib/utils/fetch-utils";
-	import { getStatusName, type ContestDetail, getStatusColor, type ContestPhoto } from "$lib/domain/contests";
+	import { getStatusName, type ContestDetail, getStatusColor, type ContestPhoto, type FeesType } from "$lib/domain/contests";
 	import { onMount } from "svelte";
 	import { Button, Card } from "flowbite-svelte";
 	import Fa from "svelte-fa";
@@ -14,12 +14,12 @@
 	import { isAdminUser } from "$lib/store/session-store";
 	import NewPhoto from "./new-photo.svelte";
 	import VotePhoto from "./vote-photo.svelte";
-	import { firstConnect, walletAccount } from "$lib/store/wallet-store";
 	import FormContest from "../form-contest.svelte";
+	import { currentContestId } from "$lib/store/contest-store";
 
-	export let data: {contestData: ContestDetail, fees: Record<string, number>};
+	export let data: {contestData: ContestDetail, fees: FeesType};
 
-	$: contestId = parseInt($page.url.pathname.split('/').pop()!);
+	$: contestId = $currentContestId;
 	$: contestData = data.contestData as ContestDetail;
 	$: photos = contestData.photos || [];
 	$: openModalPhoto = false;

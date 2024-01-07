@@ -25,10 +25,11 @@
 	import { createEventDispatcher } from 'svelte';
 	import Fa from 'svelte-fa';
 	import { writable } from 'svelte/store';
-	import type { FeesType } from './proxy+page';
 	import { currentAccount, userId } from '$lib/store/session-store';
 	import type { UserPhotoData } from '$lib/domain/account';
 	import { ensureWallet, walletAccount } from '$lib/store/wallet-store';
+	import type { FeesType } from '$lib/domain/contests';
+	
 
 	const dispatch = createEventDispatcher();
 

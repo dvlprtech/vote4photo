@@ -11,7 +11,7 @@
 	import Fa from "svelte-fa";
 	import { writable } from "svelte/store";
 	import FormContest from "./form-contest.svelte";
-	import { currentContest } from "$lib/store/contest-store";
+	import { currentContestId } from "$lib/store/contest-store";
 	import { goto } from "$app/navigation";
 
 	const openModal = writable(false);
@@ -51,7 +51,7 @@
 	}
 
 	const goToDetail = (idContest: number) => {
-		currentContest.set(idContest);
+		currentContestId.set(idContest);
 		goto(`/app/contests/selected`);
 		//page.set(`/app/contests/${id}`);
 	}

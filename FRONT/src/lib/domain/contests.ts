@@ -43,3 +43,8 @@ export const getStatusColor = (status: ContestStatus) => {
         case 'pending': return 'blue';
     }
 }
+
+export type FeesType = {
+    CONTEST: number;
+    CONTEST_NEW_PHOTO: number;
+}
