@@ -11,6 +11,8 @@
 	import Fa from "svelte-fa";
 	import { writable } from "svelte/store";
 	import FormContest from "./form-contest.svelte";
+	import { currentContest } from "$lib/store/contest-store";
+	import { goto } from "$app/navigation";
 
 	const openModal = writable(false);
 	const contests = writable<ContestListing[]>([]);
@@ -47,6 +49,12 @@
 	const shadowCard = (status: string) => {
 		return `shadow-${colorByStatus(status)}-100`;
 	}
+
+	const goToDetail = (idContest: number) => {
+		currentContest.set(idContest);
+		goto(`/app/contests/selected`);
+		//page.set(`/app/contests/${id}`);
+	}
 	
 </script>
 
@@ -67,9 +75,9 @@
 </div>
 
 <div class="flex flex-row gap-2 flex-wrap mt-5">
-	{#each $contests as c}
+	{#each $contests as c, i}
 	<Card class="{shadowCard(c.status)}">				
-		<a href="/app/contests/{c.id}" class="flex flex-col">
+		<div role="link" tabindex={i} on:click={() => goToDetail(c.id)} on:keypress={null} class="flex flex-col cursor-pointer">
 			<div class="flex flex-row gap-2 items-center">
 				<Fa icon={faImages} size="lg" class="mr-1 " color={colorByStatus(c.status)} />				
 				<h3 class="text-lg font-semibold tracking-tight">{c.title}</h3>
@@ -81,7 +89,7 @@
 		  <p class="mb-3 font-normal">{c.description}</p>
 		  <p class="text-sm text-gray-500">Inicio: {DateTime.fromISO(c.initTimestamp).toLocaleString(DATETIME_FULL_TS)}</p>
 		  <p class="text-sm text-gray-500">Fin: {DateTime.fromISO(c.endTimestamp).toLocaleString(DATETIME_FULL_TS)}</p>
-		</a>
+		</div>
 	</Card>
 {/each}
 </div>

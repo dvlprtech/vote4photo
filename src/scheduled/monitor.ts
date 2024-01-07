@@ -1,7 +1,7 @@
 import { getConnection } from "@lib/domain/db-conn";
 import { Bindings } from "@lib/domain/env";
 import { contest, operations } from "@lib/domain/schema";
-import { drawPhotoWinner } from "@lib/services/contest-service";
+import { createBuyOperations, drawPhotoWinner } from "@lib/services/contest-service";
 import { prepareActionsForRejectedOperation } from "@lib/services/operation-service";
 import { and, eq, lt, ne, sql } from "drizzle-orm";
 
@@ -15,8 +15,8 @@ type ScheduledEvent = {
  * Comprueba si los concursos han finalizado para elegir al ganador y cambiarlos de estado
  * @param env 
  */
-export const expiredContestsChecker = async (env: Bindings) => {
-  console.log('---> expiredContestsChecker');
+export const finishedContestsChecker = async (env: Bindings) => {
+  console.log('---> finishedContestsChecker');
   const db = getConnection(env.DB);
   const expiredContests = await db.select().from(contest)
     .where(and(ne(contest.status, 'finished'), lt(contest.endTimestamp, sql`CURRENT_TIMESTAMP`)));
@@ -25,8 +25,13 @@ export const expiredContestsChecker = async (env: Bindings) => {
     for (const c of expiredContests) {
       console.log(`Contest ${c.id} - ${c.title} has ended!`);
       await db.update(contest).set({ status: 'finished' }).where(eq(contest.id, c.id));
-      const results = await drawPhotoWinner(env, c.id);
-      console.log(`Contest ${c.id} results: {winner photo = ${results?.winnerPhotoId}, winner voter = ${results?.winnerVoterId} }`);
+      const results = await drawPhotoWinner(env, c.id);      
+      if (results) {
+        console.log(`Contest "${c.title}" (ID: ${c.id}) results: {winner photo = ${results.winnerPhotoId}, winner voter = ${results.winnerVoterId} }`);
+        createBuyOperations(env, results);        
+      } else {
+        console.log(`Contest ${c.id} - ${c.title} had no winner!`);
+      }
     }
   }
 };

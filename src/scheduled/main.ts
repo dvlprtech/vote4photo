@@ -1,5 +1,5 @@
 import { Bindings } from "@lib/domain/env";
-import { expiredContestsChecker, expiredOperationsChecker, initContestsChecker } from "./monitor";
+import { finishedContestsChecker, expiredOperationsChecker, initContestsChecker } from "./monitor";
 
 type ScheduledEvent = {
     scheduledTime: Date;
@@ -13,7 +13,7 @@ export default {
         console.log('EVENT: ', event.cron, event.type, new Date(event.scheduledTime));
         console.log('ENV: ', env); 
         ctx.waitUntil(initContestsChecker(env));        
-        //ctx.waitUntil(expiredContestsChecker(env));
+        ctx.waitUntil(finishedContestsChecker(env));
         //ctx.waitUntil(expiredOperationsChecker(env));
     },
   };

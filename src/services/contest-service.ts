@@ -45,7 +45,7 @@ type ResultContestType = {
 }
 
 
-export const getContests = async (c: Context, includeFinished: boolean = false): Promise<(Partial<ContestType> & { totalPhotos: number })[]> => {
+export const getContests = async (c: Context, includeFinished: boolean = true): Promise<(Partial<ContestType> & { totalPhotos: number })[]> => {
     const db = getConnection(c.env.DB);
     const filter = includeFinished ? gte(contest.endTimestamp, new Date(Date.now() - 7 * 24 * 3600 * 1000)) : ne(contest.status, 'finished');
     const totalPhotos = db.select({
@@ -60,6 +60,7 @@ export const getContests = async (c: Context, includeFinished: boolean = false):
         initTimestamp: contest.initTimestamp,
         endTimestamp: contest.endTimestamp,
         status: contest.status,
+        winnerPhotoId: contest.winningPhotoId,
         totalPhotos: sql<number>`COALESCE(${totalPhotos.total}, 0)`.as('totalPhotos')
     }).from(contest).leftJoin(totalPhotos, eq(totalPhotos.contestId, contest.id)).where(filter).orderBy(contest.endTimestamp);
 
@@ -160,7 +161,7 @@ export const getContest = async (c: Context, contestId: number): Promise<Partial
         title: userPhoto.title,
         size: userPhoto.size,
         price: contestPhoto.salePrice,
-        photoId: contestPhoto.photoId,        
+        photoId: contestPhoto.photoId,
         ownVotes: ownVotesQuery,
     }).from(contestPhoto).innerJoin(userPhoto, eq(userPhoto.id, contestPhoto.photoId)).where(eq(contestPhoto.contestId, contestId));
 
@@ -229,7 +230,7 @@ export const participateInContestWithNFT = async (c: Context, contestId: number,
         salePrice
     } as ContestPhotoType).returning({ id: contestPhoto.id });
 
-    return {        
+    return {
         photoId: photoId,
         contestPhotoId: newPhotoContest[0].id,
         title: photoMetadata.title!,
@@ -264,6 +265,7 @@ export const votePhoto = async (c: Context, contestId: number, userId: number, c
         eq(userVotes.userId, userId),
         eq(userVotes.contestPhotoId, contestPhotoId)
     ));
+    
     if (existingVote) {
         await db.update(userVotes).set({ votes: sql`votes + ${votes}`, wantBuy }).where(eq(userVotes.id, existingVote.id));
     } else {
@@ -274,7 +276,7 @@ export const votePhoto = async (c: Context, contestId: number, userId: number, c
             wantBuy
         });
     }
-    return { contestPhotoId, votes, remainigVotes: rv.remainingVotes, logVoteId: logVote[0].id };
+    return { contestPhotoId, votes, remainingVotes: rv.remainingVotes, logVoteId: logVote[0].id };
 
 }
 
@@ -341,16 +343,30 @@ export const drawPhotoWinner = async (env: Bindings, contestId: number): Promise
         winningPhotoId: winnerPhoto.photoId!,
         totalPrize: prize,
         userDrawWinningId: winnerVoterId
-    })
-        .where(eq(contest.id, contestId));
-    createOperation(env, {
-        userId: ownerId!,
-        destinationUserId: winnerVoterId,
-        destinationAccount,
-        contestPhotoId: winnerPhoto.contestPhotoId!,
-        type: 'accept_prize',
-        message: `¡Enhorabuena! Tu foto '${title}' ha ganado el concurso con un premio de: ${prize.toFixed(2)} €. Para recibirlo, debes aceptar la transferencia de la foto.`,
-    });
+    }).where(eq(contest.id, contestId));
+    if (winnerVoterId === ownerId) {
+        // Puede pasar que si alguien vota por su foto acabe ganándola
+        createOperation(env, {
+            userId: ownerId!,
+            destinationUserId: winnerVoterId,
+            destinationAccount,
+            contestPhotoId: winnerPhoto.contestPhotoId!,
+            type: 'notification',
+            message: `¡Enhorabuena! Tu foto '${title}' ha ganado el concurso con un premio de: ${prize.toFixed(2)} €.`,
+        });
+        await db.update(user).set({
+            funds: sql`funds + ${prize}`
+        }).where(eq(user.id, ownerId));
+    } else {
+        createOperation(env, {
+            userId: ownerId!,
+            destinationUserId: winnerVoterId,
+            destinationAccount,
+            contestPhotoId: winnerPhoto.contestPhotoId!,
+            type: 'accept_prize',
+            message: `¡Enhorabuena! Tu foto '${title}' ha ganado el concurso con un premio de: ${prize.toFixed(2)} €. Para recibirlo, debes aceptar la transferencia de la foto.`,
+        });
+    }
     return {
         contestId,
         winnerContestPhotoId: winnerPhoto.contestPhotoId!,

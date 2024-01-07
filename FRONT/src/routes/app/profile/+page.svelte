@@ -122,6 +122,7 @@
 			if (r.status === 200) {
 				const data = await r.json();
 				profile.remainingVotes = data.remainingVotes;
+				profile.funds = data.funds;
 			}
 			buyingVotes = false;
 		}
