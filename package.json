@@ -2,12 +2,13 @@
   "name": "vote4photo",
   "version": "1.0.0",
   "scripts": {
+    "build-front": "cd FRONT && npx vite build && cp -r build/* ../pages",
     "dev": "wrangler pages dev ./pages --compatibility-date=2023-11-24 --compatibility-flags=nodejs_compat --d1 v4b-db",
     "dev-cron": "wrangler dev src/scheduled/main.ts --test-scheduled",
     "deploy": "wrangler pages deploy ./pages --project-name vote4photo",
     "logs": "wrangler pages deployment tail --project-name vote4photo",
     "deploy-cron": "wrangler deploy --name vp4-cron ./src/scheduled/main.ts",
-    "logs-cron": "cd src/scheduled && wrangler tail v4p-cron"
+    "logs-cron": "wrangler tail v4p-cron"
   },
   "dependencies": {
     "@tsndr/cloudflare-worker-jwt": "^2.3.2",

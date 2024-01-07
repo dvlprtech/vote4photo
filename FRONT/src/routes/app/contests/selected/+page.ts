@@ -1,17 +1,12 @@
 //import type { PageLoad } from './$types';
-import type { ContestDetail } from '$lib/domain/contests';
+import type { ContestDetail, FeesType } from '$lib/domain/contests';
 import { fetchProxy } from '$lib/utils/fetch-utils';
 import { get } from 'svelte/store';
-import { currentContest } from '$lib/store/contest-store';
+import { currentContestId } from '$lib/store/contest-store';
 import { goto } from '$app/navigation';
 
-export type FeesType = {
-    CONTEST: number;
-    CONTEST_NEW_PHOTO: number;
-}
-
 export const load = async ({  }) => {
-	const contestId = get(currentContest);
+	const contestId = get(currentContestId);
     console.log('contestId', contestId);
     if (!contestId) {
         goto('/app/contests');

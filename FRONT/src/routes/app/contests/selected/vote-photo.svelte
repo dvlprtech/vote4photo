@@ -44,7 +44,7 @@
 	};
 	onMount(refresh);
 	export let openModal: boolean = false;
-	export let contestId: number;
+	export let contestId: number | null;
 	export let selectedPhoto: ContestPhoto | undefined;
 	let votes = 1;
 	let wantBuy = false;
