@@ -33,7 +33,15 @@ export const jwtFromCredentials = async (c: Context, userEmail: string, password
     console.log('Valid chain:', chainId);
 
     const db = getConnection(c.env.DB);
-    const [usr] = await db.select({password: user.password, id: user.id, role: user.role, fullName: user.fullName}).from(user).where(eq(user.email, userEmail));
+    let usr;
+    try {
+        const [usr1] = await db.select({password: user.password, id: user.id, role: user.role, fullName: user.fullName}).from(user).where(eq(user.email, userEmail));
+        usr = usr1;
+    } catch(err: unknown) {
+        console.warn('Error getting user:', err);
+        throw new HTTPException(500, {message: 'Error obteniendo el usuario'});
+    }
+    
     if (!usr) {
       throw new HTTPException(500, {message: 'Credenciales no válidas'});
     }
