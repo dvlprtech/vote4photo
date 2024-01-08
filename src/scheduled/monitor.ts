@@ -19,7 +19,7 @@ export const finishedContestsChecker = async (env: Bindings) => {
   console.log('---> finishedContestsChecker');
   const db = getConnection(env.DB);
   const expiredContests = await db.select().from(contest)
-    .where(and(ne(contest.status, 'finished'), lt(contest.endTimestamp, sql`CURRENT_TIMESTAMP`)));
+    .where(and(ne(contest.status, 'finished'), lt(contest.endTimestamp, new Date())));
   if (expiredContests.length > 0) {
     console.log(`There are ${expiredContests.length} new finished contests!`);
     for (const c of expiredContests) {

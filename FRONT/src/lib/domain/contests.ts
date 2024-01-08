@@ -7,6 +7,7 @@ export interface ContestBase {
     description: string;
     initTimestamp: string;
     endTimestamp: string;
+    winnerPhotoId?: number;
     status: ContestStatus;
 }
 
@@ -17,15 +18,19 @@ export interface ContestPhoto {
     userId: number;
     photoKey: string;
     price: number;
+    winner: boolean | number;
     ownVotes: number;
 }
 
 export interface ContestListing extends ContestBase {
+    winnerPhotoKey?: string;
+    winnerPhotoTitle?: string;
     totalPhotos: number;
 }
 
 export interface ContestDetail extends ContestBase {
     photos: ContestPhoto[];
+    totalPrize?: number
 }
 
 export const getStatusName = (status: ContestStatus) => {

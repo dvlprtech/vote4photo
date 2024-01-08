@@ -183,11 +183,11 @@
       </TableBodyCell>
       <TableBodyCell>
         <div class="w-10 h-10">
-          <Img src="http://localhost:5173/images/logo.svg" src2={`/api/photo/${op.photoKey}`} class="w-full h-auto" />
+          <Img src={`/api/photo/${op.photoKey}`} class="w-full h-auto" />
           <Tooltip>{op.title}</Tooltip>
         </div>
       </TableBodyCell>
-      <TableBodyCell>{op.message}</TableBodyCell>
+      <TableBodyCell><div class="max-w-xl whitespace-break-spaces">{op.message}</div></TableBodyCell>
       <TableBodyCell>{localDateTime(op.expirationTimestamp)}</TableBodyCell>
       <TableBodyCell>
         <ButtonGroup>
@@ -253,7 +253,7 @@
 <Modal title="Aceptar operación" bind:open={executionModal} >
   <div class="flex flex-row gap-5 w-full">
     <div class="flex flex-col gap-1">
-      <Img src="http://localhost:5173/images/logo.svg" src2={`/api/photo/${selectedOperation?.photoKey}`} class="w-32 h-auto" />
+      <Img src={`/api/photo/${selectedOperation?.photoKey}`} class="w-32 h-auto" />
       <span class="text-base leading-relaxed text-center">{selectedOperation?.title}</span>
     </div>
     <div  class="flex flex-col gap-2 grow">
