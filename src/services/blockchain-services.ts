@@ -58,7 +58,12 @@ export const sendMetatransaction = async (c: Context, message: SignedForwardRequ
   });
   console.log('Request:', request);
   console.log('Simulation OK, ready to send transaction');
-  await walletClient.writeContract(request)
+  const txHash = await walletClient.writeContract(request);
+  console.log('Esperando tx:', txHash);
+  await publicClient.waitForTransactionReceipt({
+    hash: txHash,
+    timeout: 60*1000
+  });
   console.log('Esperando eventos...');
   const logs = await publicClient.getContractEvents({ 
     address: c.env.V4P_CONTRACT,

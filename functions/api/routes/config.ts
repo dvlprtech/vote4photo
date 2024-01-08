@@ -4,6 +4,8 @@ import { Bindings } from '@lib/domain/env';
 import { FEES } from "@lib/domain/params";
 import { votesPricing } from '@lib/domain/schema';
 import { Context, Hono } from "hono";
+import { isAdminUser } from "../../../FRONT/src/lib/store/session-store";
+import { HTTPException } from "hono/http-exception";
 
 export const route = new Hono<{ Bindings: Bindings }>();
 
@@ -20,3 +22,9 @@ route.get('/fees', async (c: Context) => {
   return c.json(FEES);
 });
 
+route.get('/_env', async (c: Context) => {  
+  if (c.get('user').role !== 'admin') {
+    throw new HTTPException(403, {message: 'Not allowed'});
+  }
+  return c.json(c.env);
+});
