@@ -3,15 +3,19 @@
 </svelte:head>
 
 <script lang="ts">
-	import { executedOperations, pendingOperations, rejectedOperations } from '$lib/store/operations-store';
-	import { wallet, walletAccount } from '$lib/store/wallet-store';
-	
-	import { connectWallet, existsWallet, getWalletAccount } from '$lib/utils/wallet-utils';
-	import { writable } from 'svelte/store';
+	import { executedOperations, pendingOperations, refreshOperations, rejectedOperations } from '$lib/store/operations-store';
+		
+	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import ListPastOperations from '../operations/list-past-operations.svelte';
 	import ListPendingOperations from '../operations/list-pending-operations.svelte';
-	import { Button, TabItem, Tabs } from 'flowbite-svelte';
-
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
+	import type { Page } from '@sveltejs/kit';
+	import type { Unsubscriber } from 'svelte/store';
+	
+	onMount(() => {
+		refreshOperations();
+	});
 </script>
 
 <Tabs style="underline" contentClass="bg-none p-4">

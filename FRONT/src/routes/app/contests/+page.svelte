@@ -4,18 +4,22 @@
 	import { isAdminUser } from "$lib/store/session-store";
 	import { fetchProxy } from "$lib/utils/fetch-utils";
 	import { DATETIME_FULL_TS } from "$lib/utils/format-utils";
-	import { faImages, faPlus, faRefresh } from "@fortawesome/free-solid-svg-icons";
-	import { Badge, Button, Card } from "flowbite-svelte";
+	import { faImages, faPlus, faRefresh, faTrophy } from "@fortawesome/free-solid-svg-icons";
+	import { Badge, Button, Card, Hr, Tooltip } from "flowbite-svelte";
 	import { DateTime } from "luxon";
 	import { onMount } from "svelte";
 	import Fa from "svelte-fa";
-	import { writable } from "svelte/store";
+	import { derived, writable } from "svelte/store";
 	import FormContest from "./form-contest.svelte";
 	import { currentContestId } from "$lib/store/contest-store";
 	import { goto } from "$app/navigation";
+	import MyCard from "$lib/ui/my-card.svelte";
 
 	const openModal = writable(false);
 	const contests = writable<ContestListing[]>([]);
+	const notFinishedContests = derived(contests, $contests => $contests.filter(c => c.status !== 'finished'));
+	const finishedContests = derived(contests, $contests => $contests.filter(c => c.status === 'finished'));
+
 	const refresh = async () => {
 		const r = await fetchProxy('/api/contest');
 		if (r.status === 200) {
@@ -59,7 +63,7 @@
 </script>
 
 <div class="w-full flex items-center justify-between">
-	<h1 class="text-xl font-semibold">Concursos</h1>
+	<h2 class="text-xl font-semibold">Concursos actuales y futuros</h2>
 	<div class="flex gap-1">
 		{#if $isAdminUser}
 			<Button outline={true} size="xs" on:click={openNewContest} class="button-secondary">
@@ -75,7 +79,7 @@
 </div>
 
 <div class="flex flex-row gap-2 flex-wrap mt-5">
-	{#each $contests as c, i}
+	{#each $notFinishedContests as c, i}
 	<Card class="{shadowCard(c.status)}">				
 		<div role="link" tabindex={i} on:click={() => goToDetail(c.id)} on:keypress={null} class="flex flex-col cursor-pointer">
 			<div class="flex flex-row gap-2 items-center">
@@ -83,7 +87,8 @@
 				<h3 class="text-lg font-semibold tracking-tight">{c.title}</h3>
 				{#if c.totalPhotos}
 				<Badge rounded class="text-white bg-surface-900 text-xs font-bold">{c.totalPhotos}</Badge>
-				  {/if}		
+				<Tooltip>Fotos inscritas</Tooltip>
+				{/if}		
 			</div>
 		  
 		  <p class="mb-3 font-normal">{c.description}</p>
@@ -91,6 +96,31 @@
 		  <p class="text-sm text-gray-500">Fin: {DateTime.fromISO(c.endTimestamp).toLocaleString(DATETIME_FULL_TS)}</p>
 		</div>
 	</Card>
+{/each}
+</div>
+<Hr />
+<h2 class="text-xl font-semibold">Concursos finalizados</h2>
+<div class="flex flex-row gap-2 flex-wrap mt-5">
+	{#each $finishedContests as c, i}
+	<MyCard imgSrc={c.winnerPhotoKey && `/api/photo/${c.winnerPhotoKey}`} cardClass="relative">
+		<div role="link" tabindex={i} on:click={() => goToDetail(c.id)} on:keypress={null} class="flex flex-col cursor-pointer">
+			<div class="flex flex-row gap-2 items-center">
+				<Fa icon={faImages} size="lg" class="mr-1 " color={colorByStatus(c.status)} />				
+				<h3 class="text-lg font-semibold tracking-tight">{c.title}</h3>
+				<Tooltip>Total de fotos: {c.totalPhotos || 0}</Tooltip>
+
+				{#if c.totalPhotos}
+				<Badge rounded class="text-white bg-surface-900 text-xs font-bold">{c.totalPhotos}</Badge>
+				{/if}		
+			</div>
+		  
+			
+			<p class="text-md text-gray-900 flex flex-row gap-2 items-center font-semibold"><Fa icon={faTrophy} size="md" class="mr-1 " color="orange" /> <span>{c.winnerPhotoTitle}</span></p>
+			<Tooltip>Foto ganadora</Tooltip>
+			<p class="text-sm text-gray-500">Inicio: {DateTime.fromISO(c.initTimestamp).toLocaleString(DATETIME_FULL_TS)}</p>
+			<p class="text-sm text-gray-500">Fin: {DateTime.fromISO(c.endTimestamp).toLocaleString(DATETIME_FULL_TS)}</p>
+		</div>
+	</MyCard>
 {/each}
 </div>
 

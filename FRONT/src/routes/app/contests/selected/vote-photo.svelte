@@ -1,36 +1,28 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import type { AccountData } from '$lib/domain/account';
+	import type { ContestPhoto } from '$lib/domain/contests';
+	import { userId } from '$lib/store/session-store';
+	import { showError } from '$lib/ui/error-manager';
+	import { fetchProxy } from '$lib/utils/fetch-utils';
 	import {
-		Badge,
-		Button,
-		Card,
-		Checkbox,
-		Helper,
-		Img,
-		Input,
-		Label,
-		Modal,
-		NumberInput,
-		Select,
-		Spinner
-	} from 'flowbite-svelte';
-	import Fa from 'svelte-fa';
-	import {
-		fa1,
 		faArrowsDownToLine,
-		faEquals,
 		faPlus,
 		faStar
 	} from '@fortawesome/free-solid-svg-icons';
-	import { faStar as faStarAlt } from '@fortawesome/free-regular-svg-icons';
+	import {
+		Badge,
+		Button,
+		Checkbox,
+		Helper,
+		Img,
+		Label,
+		Modal,
+		NumberInput,
+		Spinner
+	} from 'flowbite-svelte';
 	import { createEventDispatcher, onMount } from 'svelte';
+	import Fa from 'svelte-fa';
 	import { writable } from 'svelte/store';
-	import type { ContestListing, ContestPhoto } from '$lib/domain/contests';
-	import { fetchProxy } from '$lib/utils/fetch-utils';
-	import { userId } from '$lib/store/session-store';
-	import type { AccountData } from '$lib/domain/account';
-	import { showError } from '$lib/ui/error-manager';
 
 	const dispatch = createEventDispatcher();
 

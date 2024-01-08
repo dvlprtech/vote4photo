@@ -44,8 +44,14 @@ type ResultContestType = {
     winnerVoterId: number
 }
 
+type ListingContestData = Partial<ContestType> & {
+    totalPhotos: number,
+    winnerPhotoKey: string | null,
+    winnerPhotoTitle: string | null
+}
 
-export const getContests = async (c: Context, includeFinished: boolean = true): Promise<(Partial<ContestType> & { totalPhotos: number })[]> => {
+
+export const getContests = async (c: Context, includeFinished: boolean = true): Promise<ListingContestData[]> => {
     const db = getConnection(c.env.DB);
     const filter = includeFinished ? gte(contest.endTimestamp, new Date(Date.now() - 7 * 24 * 3600 * 1000)) : ne(contest.status, 'finished');
     const totalPhotos = db.select({
@@ -54,17 +60,22 @@ export const getContests = async (c: Context, includeFinished: boolean = true): 
     }).from(contestPhoto).groupBy(contestPhoto.contestId).as('totalPhotos');
 
     const contests = await db.select({
-        id: contest.id,
+        id: sql<number>`(${contest.id} + 0)`,
         title: contest.title,
         description: contest.description,
         initTimestamp: contest.initTimestamp,
         endTimestamp: contest.endTimestamp,
         status: contest.status,
         winnerPhotoId: contest.winningPhotoId,
+        winnerPhotoKey: userPhoto.photoKey,
+        winnerPhotoTitle: sql<string>`COALESCE(${userPhoto.title}, '')`.as('winnerPhotoTitle'),
         totalPhotos: sql<number>`COALESCE(${totalPhotos.total}, 0)`.as('totalPhotos')
-    }).from(contest).leftJoin(totalPhotos, eq(totalPhotos.contestId, contest.id)).where(filter).orderBy(contest.endTimestamp);
+    }).from(contest)
+    .leftJoin(userPhoto, and(eq(userPhoto.id, contest.winningPhotoId), isNotNull(contest.winningPhotoId)))
+    .leftJoin(totalPhotos, eq(totalPhotos.contestId, contest.id)).where(filter)
+    .orderBy(contest.endTimestamp);
 
-    return [...contests];
+    return contests;
 }
 
 
@@ -163,6 +174,7 @@ export const getContest = async (c: Context, contestId: number): Promise<Partial
         price: contestPhoto.salePrice,
         photoId: contestPhoto.photoId,
         ownVotes: ownVotesQuery,
+        winner: sql<boolean>`(${contestPhoto.id} = ${currentContest.winningPhotoId})`.as('winner')
     }).from(contestPhoto).innerJoin(userPhoto, eq(userPhoto.id, contestPhoto.photoId)).where(eq(contestPhoto.contestId, contestId));
 
     return { ...currentContest, photos: contestPhotos };

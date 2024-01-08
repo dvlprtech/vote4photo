@@ -4,31 +4,28 @@
 		faFileUpload,
 		faUpload
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { Address, Hex } from "viem";
 
+	import type { UserPhotoData } from '$lib/domain/account';
 	import type { ForwardRequest, SignedForwardRequest } from '$lib/domain/blockchain';
+	import type { FeesType } from '$lib/domain/contests';
+	import { currentAccount, userId } from '$lib/store/session-store';
 	import { showError } from '$lib/ui/error-manager';
 	import { fetchProxy } from '$lib/utils/fetch-utils';
 	import { signMessageWithWallet } from '$lib/utils/wallet-utils';
-	import { faImage } from '@fortawesome/free-regular-svg-icons';
 	import {
 		Button,
 		Dropzone,
+		Helper,
 		Img,
 		Input,
 		Label,
 		Modal,
 
 		Select
-
 	} from 'flowbite-svelte';
 	import { createEventDispatcher } from 'svelte';
 	import Fa from 'svelte-fa';
 	import { writable } from 'svelte/store';
-	import { currentAccount, userId } from '$lib/store/session-store';
-	import type { UserPhotoData } from '$lib/domain/account';
-	import { ensureWallet, walletAccount } from '$lib/store/wallet-store';
-	import type { FeesType } from '$lib/domain/contests';
 	
 
 	const dispatch = createEventDispatcher();
@@ -85,19 +82,21 @@
 			photoKey: $photoKey,
 		}
 		if (!existingPhoto) {
-			const signature = await signMessageWithWallet(messageToSign, domain);
+			const signature = await signMessageWithWallet(messageToSign!, domain);
 			if (!signature) {
 				showError('No se ha podido firmar el mensaje');
 				return;
 			}
-			data.signedMessage = {...messageToSign, signature};
+			data.signedMessage = {...messageToSign!, signature};
 		}
 		
 		const r = await fetchProxy(`/api/contest/${contestId}/addphoto`, {
 			method: 'POST',
 			payload: data
 		});
+		
 		if (r.status === 200) {
+			messageToSign = null;
 			_prepareForUpload();
 			const photoData = await r.json();
 			dispatch('close', {});
@@ -135,7 +134,7 @@
 				salePriceInput?.focus();
 			}, 50);
 		}
-	};
+	}; 
 
 	const handleSubmit = async (e: SubmitEvent) => {
 		e.preventDefault();
@@ -166,7 +165,7 @@
 	let buttonLabel = 'Preparar foto';
 	
 	const photoKey = writable<string>('');
-	let messageToSign: ForwardRequest;
+	let messageToSign: ForwardRequest | null = null;
 	let domain: object;
 	let fileToUpload: File | null = null;
 	let availableUserPhotos : UserPhotoData[] = [];
@@ -258,7 +257,11 @@
 						</Input>
 					</div>
 				</div>
-			</div>
+				{#if $photoKey && !!messageToSign}
+				<div>
+					<Helper>Esta operación puede tardar hasta un minuto en función de la carga de la red, por favor, sea paciente y no cierre la ventana</Helper>
+				</div>
+				{/if}
 			<div class="flex justify-end col-span-2">
 				<Button type="submit" class="w-52" outline={true} disabled={userFunds < contestFee}>
 					<Fa icon={buttonIcon} class="w-5 h-5 mr-1" />

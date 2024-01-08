@@ -13,7 +13,7 @@
   "dependencies": {
     "@tsndr/cloudflare-worker-jwt": "^2.3.2",
     "bcrypt": "^5.1.1",
-    "drizzle-orm": "^0.29.0",
+    "drizzle-orm": "^0.29.3",
     "hono": "^3.10.2",
     "luxon": "^3.4.4",
     "viem": "^1.19.9"

@@ -7,6 +7,7 @@ import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { Address, Hex } from 'viem';
 import { DomainType, getDomain, getMessageSeralizable, getMessageToSignForNFTTransfer, getNonce, sendMetatransaction } from './blockchain-services';
+import { SvelteComponent_1 } from 'svelte';
 
 const EXPIRATION_BY_TYPE : Record<OperationTypeType, number> = {
     accept_prize: 7*24*3600*1000,
@@ -39,6 +40,8 @@ type OperationBasicData = {
     status: OperationStatusType,
     message: string,
     expirationTimestamp?: string | Date,
+    executionTimestamp?: string | Date | null,
+    rejectionTimestamp?: string | Date | null,
     rejectionReason: string | null,
     photoId: number,
     salePrice: number,
@@ -72,8 +75,9 @@ type DataToSign = {
 export const listOwnOperations = async (c: Context, userId: number) : Promise<OperationBasicData[]> => {
     const db = getConnection(c.env.DB);
     const dateLimit = new Date(Date.now() - 7*24*3600*1000);
-    const ownOperations = await db.select({
-        id: operations.id,
+
+    const results = await db.select({
+        operationId: sql<number>`(${operations.id} + 0)`,
         type: operations.type,
         status: operations.status,
         message: operations.message,
@@ -96,6 +100,28 @@ export const listOwnOperations = async (c: Context, userId: number) : Promise<Op
             and(eq(operations.status, 'rejected'), gt(operations.rejectionTimestamp, dateLimit)),
         )
     )).orderBy(desc(operations.id));
+    const ownOperations = results.map<OperationBasicData>(o => {
+        const id = o.operationId!;
+        delete (o as any)['operationId'];
+        return {...o, id};
+    });
+    // Esto es un workaround por un bug con los doble inner join y drizzle-orm
+    // for (const o of ownOperations as OperationBasicData[]) {
+    //     const [photo] = await db.select({
+    //         salePrice: contestPhoto.salePrice,
+    //         photoId: userPhoto.id,
+    //         title: userPhoto.title,
+    //         photoKey: userPhoto.photoKey
+    //     }).from(contestPhoto)
+    //     .leftJoin(userPhoto, eq(userPhoto.id, contestPhoto.photoId))
+    //     .where(eq(contestPhoto.id, o.id));
+    //     console.log('photo:', photo);
+    //     o.salePrice = photo.salePrice;
+    //     o.photoId = photo.photoId!;
+    //     o.title = photo.title!;
+    //     o.photoKey = photo.photoKey!;    
+    // }
+    console.log('ownOperations:', ownOperations);
     return ownOperations;
 }
 
