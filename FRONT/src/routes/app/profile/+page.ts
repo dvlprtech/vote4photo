@@ -5,6 +5,7 @@ import { fetchProxy } from '$lib/utils/fetch-utils';
 import type { AccountData } from '$lib/domain/account';
 import { get } from 'svelte/store';
 import { userId } from '$lib/store/session-store';
+import { loadProfile } from '$lib/store/profile-store';
 
 
 type VotePackPrice = {amount: number, price: number};
@@ -13,12 +14,8 @@ type PageParams = {profile: AccountData, votesPricing: VotePackPrice[], priceLis
 export const load = async ({ params }: Parameters<PageLoad>[0]) : Promise<PageParams> => {
     const accountId =get(userId);
     if (accountId) {
-        const data = {} as PageParams;
-        const rp = await fetchProxy(`/api/account/${accountId}`);
-        if (rp.status === 200) {
-            const profile= await rp.json() as AccountData;
-            data.profile = profile;
-        }
+        const data = {} as PageParams;        
+        data.profile = await loadProfile();
         const rv = await fetchProxy(`/api/config/votes_pricing`);
         if (rv.status === 200) {
             const votesPricing = (await rv.json()).pricing as VotePackPrice[];

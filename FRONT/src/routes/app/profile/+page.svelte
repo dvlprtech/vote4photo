@@ -1,26 +1,21 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { Badge, Button, ButtonGroup, Indicator, Input, Label, Modal, Select, Spinner, TabItem, Tabs } from 'flowbite-svelte';
-	import { fetchProxy } from '$lib/utils/fetch-utils';
-	import Fa from 'svelte-fa';
-	import { faMoneyBill1Wave, faMoneyBills, faSave, faStar, faUserAlt } from '@fortawesome/free-solid-svg-icons';	
-	import { faStar as faStarAlt } from '@fortawesome/free-regular-svg-icons';	
 	import type { AccountData } from '$lib/domain/account';
-	import type { PageData } from './$types';
-	import { showError } from '$lib/ui/error-manager';
-	import { faIdCard, faImages, faMoneyBill1, faPlusSquare } from '@fortawesome/free-regular-svg-icons';
-	import MyCard from '$lib/ui/my-card.svelte';
-	import { DateTime } from 'luxon';
-	import { DATETIME_FULL_TS, ellipsis, getReadableFileSize, localDateTime } from '$lib/utils/format-utils';
 	import { userId } from '$lib/store/session-store';
+	import { showError } from '$lib/ui/error-manager';
+	import MyCard from '$lib/ui/my-card.svelte';
+	import { fetchProxy } from '$lib/utils/fetch-utils';
+	import { ellipsis, getReadableFileSize, localDateTime } from '$lib/utils/format-utils';
+	import { faImages, faPlusSquare, faStar as faStarAlt } from '@fortawesome/free-regular-svg-icons';
+	import { faMoneyBill1Wave, faMoneyBills, faSave, faStar, faUserAlt } from '@fortawesome/free-solid-svg-icons';
+	import { Badge, Button, ButtonGroup, Input, Label, Modal, Select, Spinner, TabItem, Tabs } from 'flowbite-svelte';
+	import Fa from 'svelte-fa';
+	import type { PageData } from './$types';
 
 	export let data: PageData;
 	$: profile = data.profile as AccountData;
 	$: {
 		if (profile && profileForm) {
 			const formData = new FormData(profileForm);
-			console.log('formData', formData);
 			formData.set('fullName', profile.fullName);
 			formData.set('email', profile.email);
 			formData.set('role', profile.role);
@@ -29,14 +24,7 @@
 
 		}
 	}
-
-
 	let profileForm : HTMLFormElement;
-	const load = () => {
-		console.log('profileForm:', profileForm);
-		console.log('profile:', profile);
-	};
-	load();
 
 	const saveProfile = async (e: SubmitEvent) => {
 		const form = e.target as HTMLFormElement;
@@ -56,7 +44,6 @@
 			showError('No hay cambios que guardar');
 			return;
 		}
-		console.log('saveProfile', data);
 		const r = await fetchProxy(`/api/account/${$userId}`, {
 			method: 'PUT',
 			payload: data
@@ -172,7 +159,7 @@
 							<span slot="right" class="text-gray-500 text-lg">€</span>
 						</Input>
 					</div>
-					<Button type="button"  outline color="light" size="xs" on:click={() => {
+					<Button type="button"  outline color="red" size="xs" on:click={() => {
 						modalFundsOpened = true; 
 						fundsToTransfer = 1;}}>
 						<Fa icon={faMoneyBills} size="lg" />
@@ -183,7 +170,7 @@
 						<Label for="remainingVotes" class="mb-2">Votos disponibles</Label>
 						<Input type="number" id="remainingVotes" name="remainingVotes" readonly value={profile.remainingVotes} />
 					</div>
-					<Button type="button" outline color="light" size="xs" on:click={() => {
+					<Button type="button" outline color="yellow" size="xs" on:click={() => {
 						modalVotesOpened = true;
 						votesToBuy = 1;}}>
 						<Fa icon={faPlusSquare}  size="lg" />

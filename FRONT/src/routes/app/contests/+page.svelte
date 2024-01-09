@@ -32,11 +32,9 @@
 		openModal.set(true);
 	}
 	const newContestCreated = async (data: unknown) => {	
-		console.log('newContestCreated', data);
 		refresh();
 	}
 	const closedNewContestDialog = async () => {
-		console.log('closedNewContestDialog');
 		$openModal = false;
 	}
 	const colorByStatus = (status: string) => {

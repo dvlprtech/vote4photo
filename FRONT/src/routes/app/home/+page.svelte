@@ -5,19 +5,28 @@
 <script lang="ts">
 	import { executedOperations, pendingOperations, refreshOperations, rejectedOperations } from '$lib/store/operations-store';
 		
-	import { Button, TabItem, Tabs } from 'flowbite-svelte';
+	import { Alert, Button, TabItem, Tabs } from 'flowbite-svelte';
 	import ListPastOperations from '../operations/list-past-operations.svelte';
 	import ListPendingOperations from '../operations/list-pending-operations.svelte';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import type { Page } from '@sveltejs/kit';
 	import type { Unsubscriber } from 'svelte/store';
+	import { loadProfile, userProfile } from '$lib/store/profile-store';
 	
 	onMount(() => {
 		refreshOperations();
+		loadProfile();
 	});
 </script>
 
+{#if $userProfile?.funds === 0}
+<Alert color="yellow" border class="mx-10">
+	<span class="font-medium">No dispones de fondos en tu cuenta!</span>
+	<span>Añadelos desde tu perfil para poder participar en concursos o conseguir votos.</span>
+	<a href="/app/profile" class="underline underline-offset-2 hover:font-semibold">Ir al Perfil</a>
+  </Alert>
+{/if}
 <Tabs style="underline" contentClass="bg-none p-4">
 	<TabItem open>
 		<div slot="title" class="flex items-center gap-2">

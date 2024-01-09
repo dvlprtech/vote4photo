@@ -21,9 +21,7 @@
 	const token = get(currentToken);
 
 	const onSubmit = async (e: SubmitEvent) => {
-		console.log('Signing up...');
 		const formData = new FormData(e.target as HTMLFormElement);
-		console.log(formData.entries());
 		if (!$walletAccount) {
 			showError('Es necesario conectar con una wallet para poder acceder');
 			return;
