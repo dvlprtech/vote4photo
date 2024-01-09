@@ -18,7 +18,7 @@
     <NavUl {activeUrl} {hidden} {activeClass} {nonActiveClass} class="font-bold" >
       <NavLi href="/app/home"><Fa icon={faHome} class="w-5 h-5 mt-1" /></NavLi>
       <NavLi href="/app/contests">Concursos</NavLi>
-      <NavLi href="/app/profile">Profile</NavLi>
+      <NavLi href="/app/profile">Perfil</NavLi>
     </NavUl>
     <div class="flex justify-end gap-1 items-center">
       <span>{$userFullname}</span>

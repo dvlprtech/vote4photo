@@ -34,7 +34,6 @@
 	$: clickedButton = undefined as HTMLButtonElement | undefined;
 
 	const contestUpdated = async (evt: CustomEvent<ContestDetail>) => {
-		console.log('contestUpdated', evt.detail);
 		contestData = { ...contestData, ...evt.detail };
 	};
 	const addPhoto = async () => {
@@ -48,8 +47,6 @@
 	};
 
 	const photoCreated = async (photoData: CustomEvent<ContestPhoto>) => {
-		console.log('photoCreated', photoData);
-		console.log('photoCreated', photoData.detail);
 		contestData = { ...contestData, photos: [...contestData.photos, photoData.detail] };
 		closedPhotoDialog();
 	};
@@ -61,18 +58,15 @@
 	};
 	const photoVoted = async (event: CustomEvent<{ contestPhotoId: number; votes: number }>) => {
 		const { contestPhotoId, votes } = event.detail;
-		console.log('photoVoted', event.detail);
 		const photo = photos.find((p) => p.contestPhotoId === contestPhotoId);
 		if (photo) {
 			photo.ownVotes = (photo.ownVotes || 0) + votes;
-			console.log('voted photo:', photo);
 			photoToBeVoted = undefined;
 			clickedButton = undefined;
 			photos = [...photos];
 		}
 	};
 	const openVotePhotoDialog = async (photo: ContestPhoto, button: EventTarget | null) => {
-		console.log('photo:', photo);
 		photoToBeVoted = photo;
 		openModalVote = true;
 		clickedButton = button as HTMLButtonElement;
