@@ -2,7 +2,7 @@
   "name": "vote4photo",
   "version": "1.0.0",
   "scripts": {
-    "build-front": "cd FRONT && npx vite build && cp -r build/* ../pages",
+    "build-front": "cd FRONT && npx vite build && rm -rf ../pages/*app && cp -r build/* ../pages",
     "dev": "wrangler pages dev ./pages --compatibility-date=2023-11-24 --compatibility-flags=nodejs_compat --d1 v4b-db",
     "dev-cron": "wrangler dev src/scheduled/main.ts --test-scheduled",
     "deploy": "wrangler pages deploy ./pages --project-name vote4photo",
