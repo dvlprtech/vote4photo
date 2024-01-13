@@ -1,9 +1,5 @@
 <script lang="ts">
-	import {
-		faFileSignature,
-		faFileUpload,
-		faUpload
-	} from '@fortawesome/free-solid-svg-icons';
+	import { faFileSignature, faFileUpload, faUpload } from '@fortawesome/free-solid-svg-icons';
 
 	import type { UserPhotoData } from '$lib/domain/account';
 	import type { ForwardRequest, SignedForwardRequest } from '$lib/domain/blockchain';
@@ -20,24 +16,24 @@
 		Input,
 		Label,
 		Modal,
-
-		Select
+		Select,
+		Spinner
 	} from 'flowbite-svelte';
 	import { createEventDispatcher } from 'svelte';
 	import Fa from 'svelte-fa';
 	import { writable } from 'svelte/store';
-	
 
 	const dispatch = createEventDispatcher();
 
 	const loadUserPhotos = async () => {
-		
 		const r = await fetchProxy(`/api/account/${$userId}`);
 		if (r.status === 200) {
-			const accountData = await r.json();	
+			const accountData = await r.json();
 			userFunds = accountData.funds;
 			const photos = accountData.photos as UserPhotoData[];
-			availableUserPhotos = photos.filter((p) => !p.currentContestId && p.account.toLowerCase() === $currentAccount);
+			availableUserPhotos = photos.filter(
+				(p) => !p.currentContestId && p.account.toLowerCase() === $currentAccount
+			);
 		}
 	};
 
@@ -48,11 +44,11 @@
 		buttonLabel = 'Preparar foto';
 		contestFee = fees?.CONTEST_NEW_PHOTO;
 		existingPhoto = null;
-		titleProps = {}
+		titleProps = {};
 	};
 
 	const _prepareForSendSignedPhoto = (pkey: string, bLabel = 'Enviar foto y firma') => {
-		photoKey.set(pkey);		
+		photoKey.set(pkey);
 		buttonIcon = faFileSignature;
 		buttonLabel = bLabel;
 	};
@@ -60,13 +56,13 @@
 	const photoSelected = (e: Event) => {
 		const photoId = parseInt((e.target as HTMLSelectElement).value);
 		if (!photoId) {
-			_prepareForUpload();			
+			_prepareForUpload();
 		} else {
 			const photo = availableUserPhotos.find((p) => p.id === photoId);
 			if (photo) {
 				contestFee = fees?.CONTEST;
-				existingPhoto = photo;				
-				titleProps = {value:  photo.title, readonly: true}
+				existingPhoto = photo;
+				titleProps = { value: photo.title, readonly: true };
 				_prepareForSendSignedPhoto(photo.photoKey, 'Enviar foto');
 			} else {
 				_prepareForUpload();
@@ -77,24 +73,25 @@
 	const sendSignature = async (form: HTMLFormElement) => {
 		const formdata = new FormData(form);
 		const salePrice = Number(formdata.get('salePrice'));
-		const data : {salePrice: number, photoKey: string, signedMessage?: SignedForwardRequest} = {
+		const data: { salePrice: number; photoKey: string; signedMessage?: SignedForwardRequest } = {
 			salePrice,
-			photoKey: $photoKey,
-		}
+			photoKey: $photoKey
+		};
 		if (!existingPhoto) {
 			const signature = await signMessageWithWallet(messageToSign!, domain);
 			if (!signature) {
 				showError('No se ha podido firmar el mensaje');
 				return;
 			}
-			data.signedMessage = {...messageToSign!, signature};
+			data.signedMessage = { ...messageToSign!, signature };
 		}
-		
+		creatingNFT = true;
 		const r = await fetchProxy(`/api/contest/${contestId}/addphoto`, {
 			method: 'POST',
 			payload: data
 		});
-		
+		creatingNFT = false;
+
 		if (r.status === 200) {
 			messageToSign = null;
 			_prepareForUpload();
@@ -110,7 +107,7 @@
 		const formdata = new FormData(form);
 		const title = formdata.get('title');
 		if (!existingPhoto) {
-			const photo = fileToUpload;		
+			const photo = fileToUpload;
 			if (!photo) {
 				showError('No se ha incluido la foto');
 				return;
@@ -128,13 +125,13 @@
 			const responseData = await r.json();
 			messageToSign = responseData.messageToSign as ForwardRequest;
 			domain = responseData.domain;
-      		_prepareForSendSignedPhoto(responseData.photoKey);
+			_prepareForSendSignedPhoto(responseData.photoKey);
 			setTimeout(() => {
 				const salePriceInput = document.getElementById('salePrice') as HTMLInputElement;
 				salePriceInput?.focus();
 			}, 50);
 		}
-	}; 
+	};
 
 	const handleSubmit = async (e: SubmitEvent) => {
 		e.preventDefault();
@@ -152,6 +149,7 @@
 				method: 'DELETE'
 			});
 		}
+		creatingNFT = false;
 
 		dispatch('close', {});
 	};
@@ -159,16 +157,17 @@
 	export let openModal = false;
 	export let contestId: number | null = null;
 	export let fees: FeesType;
-	$: existingPhoto = null as (UserPhotoData | null);
+	$: existingPhoto = null as UserPhotoData | null;
 	$: contestFee = fees?.CONTEST_NEW_PHOTO || 0;
+	$: creatingNFT = false;
 	let buttonIcon = faFileUpload;
 	let buttonLabel = 'Preparar foto';
-	
+
 	const photoKey = writable<string>('');
 	let messageToSign: ForwardRequest | null = null;
 	let domain: object;
 	let fileToUpload: File | null = null;
-	let availableUserPhotos : UserPhotoData[] = [];
+	let availableUserPhotos: UserPhotoData[] = [];
 	let userFunds = 0;
 	let titleProps = {};
 	loadUserPhotos();
@@ -194,23 +193,25 @@
 		<div class="grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2">
 			<div>
 				{#if availableUserPhotos.length > 0}
-				<Select id="" name="userPhoto" on:change={photoSelected} class="mb-2" placeholder="">
-					<option value="0" selected>Nueva foto</option>
-					{#each availableUserPhotos as photo}
-						<option value={photo.id}>{photo.title}</option>
-					{/each}
-				</Select>
-				{/if}						
-					<Label for="dropzone" class="mb-2">Foto</Label>
-					{#if $photoKey}
-						<Img src={`/api/photo/${$photoKey}`} class="w-full h-auto" />
-					{:else}
-					<Dropzone id="dropzone"
+					<Select id="" name="userPhoto" on:change={photoSelected} class="mb-2" placeholder="">
+						<option value="0" selected>Nueva foto</option>
+						{#each availableUserPhotos as photo}
+							<option value={photo.id}>{photo.title}</option>
+						{/each}
+					</Select>
+				{/if}
+				<Label for="dropzone" class="mb-2">Foto</Label>
+				{#if $photoKey}
+					<Img src={`/api/photo/${$photoKey}`} class="w-full h-auto" />
+				{:else}
+					<Dropzone
+						id="dropzone"
 						on:drop={dropHandle}
 						on:dragover={(e) => {
 							e.preventDefault();
 						}}
-						on:change={handleChange}>
+						on:change={handleChange}
+					>
 						<Fa icon={faUpload} class="text-3xl text-gray-400 mb-2" />
 						<p class="mb-2 text-sm text-gray-500">
 							<span class="font-semibold"> Pincha para subir una foto</span> o haz drag&drop
@@ -221,8 +222,7 @@
 							<p class="mb-2 text-sm text-gray-600 font-semibold">{fileToUpload.name}</p>
 						{/if}
 					</Dropzone>
-					{/if}
-				
+				{/if}
 			</div>
 			<div class="flex flex-col gap-2">
 				<div>
@@ -244,7 +244,7 @@
 					</Input>
 				</div>
 				<div class="flex flex-row gap-2">
-				 	<div>
+					<div>
 						<Label for="funds" class="mb-2">Fondos</Label>
 						<Input id="funds" name="funds" value={userFunds} readonly disabled>
 							<span slot="right" class="text-gray-500">€</span>
@@ -252,21 +252,36 @@
 					</div>
 					<div>
 						<Label for="fee" class="mb-2">Tasa inscripción</Label>
-						<Input id="fee" name="fee" value={contestFee} readonly color={userFunds < contestFee ? 'red' : undefined}>
+						<Input
+							id="fee"
+							name="fee"
+							value={contestFee}
+							readonly
+							color={userFunds < contestFee ? 'red' : undefined}
+						>
 							<span slot="right" class="text-gray-500">€</span>
 						</Input>
 					</div>
 				</div>
 				{#if $photoKey && !!messageToSign}
-				<div>
-					<Helper>Esta operación puede tardar hasta un minuto en función de la carga de la red, por favor, sea paciente y no cierre la ventana</Helper>
-				</div>
+					<div>
+						<Helper
+							>Esta operación puede tardar hasta un minuto en función de la carga de la red, por
+							favor, sea paciente y no cierre la ventana</Helper
+						>
+					</div>
 				{/if}
-			<div class="flex justify-end col-span-2">
-				<Button type="submit" class="w-52" outline={true} disabled={userFunds < contestFee}>
-					<Fa icon={buttonIcon} class="w-5 h-5 mr-1" />
-					{buttonLabel}
-				</Button>
+				<div class="flex justify-end col-span-2">
+					<Button type="submit" class="w-52" outline={true} disabled={userFunds < contestFee}>
+						{#if creatingNFT}
+							<Spinner class="me-3" size="4" color="white" />
+							Creación en curso...
+						{:else}
+							<Fa icon={buttonIcon} class="w-5 h-5 mr-1" />
+							{buttonLabel}
+						{/if}
+					</Button>
+				</div>
 			</div>
 		</div>
 	</form>

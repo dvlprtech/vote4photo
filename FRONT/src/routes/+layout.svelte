@@ -9,11 +9,15 @@
       goto('/app/home');
     }
 	} else {
-		goto('/signin');
+    if ($page.url.pathname !== '/signup') {
+		  goto('/signin');
+    }
 	}
   isAuthenticated.subscribe((value) => {
     if (!value) {
-      goto('/signin');
+      if ($page.url.pathname !== '/signup') {
+        goto('/signin');
+      }
     }
   });
 
