@@ -25,8 +25,8 @@ route.get('/fees', async (c: Context) => {
 route.get('/urls', async (c: Context) => {  
   const SEPOLIA_ETHERSCAN_URL_BASE = 'https://sepolia.etherscan.io';
   return c.json({
-    tx_base: `${SEPOLIA_ETHERSCAN_URL_BASE}/tx/`,
-    token_base: `${SEPOLIA_ETHERSCAN_URL_BASE}/nft/${c.env.V4P_CONTRACT}/`
+    tx_base: `${SEPOLIA_ETHERSCAN_URL_BASE}/tx`,
+    token_base: `${SEPOLIA_ETHERSCAN_URL_BASE}/nft/${c.env.V4P_CONTRACT}`
   });
 });
 
