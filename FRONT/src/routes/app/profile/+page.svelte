@@ -10,6 +10,7 @@
 	import { Badge, Button, ButtonGroup, Input, Label, Modal, Select, Spinner, TabItem, Tabs } from 'flowbite-svelte';
 	import Fa from 'svelte-fa';
 	import type { PageData } from './$types';
+	import { getTokenUrl } from '$lib/store/config-store';
 
 	export let data: PageData;
 	$: profile = data.profile as AccountData;
@@ -203,7 +204,7 @@
 				<MyCard imgSrc="/api/photo/{photo.photoKey}" horizontal={true} >
 						<h5 class="mb-2 text-lg tracking-tight">{photo.title}</h5>
 						<ul class="text-text-400 text-sm">
-							<li>Token ID: <span class="text-text-900">{photo.tokenId}</span></li>
+							<li>Token ID: <a href={getTokenUrl(photo.tokenId)} class="text-blue-600 font-semibold" target="_blank">{photo.tokenId}</a></li>
 							<li class="text-ellipsis">Cuenta: <span class="text-text-900">{ellipsis(photo.account, 16)}</span></li>
 							<li>Tamaño: <span class="text-text-900">{getReadableFileSize(photo.size)}</span></li>
 						    <li>Desde: <span class="text-text-900">{localDateTime(photo.ownerSince)}</span></li>

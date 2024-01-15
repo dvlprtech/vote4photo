@@ -22,6 +22,14 @@ route.get('/fees', async (c: Context) => {
   return c.json(FEES);
 });
 
+route.get('/urls', async (c: Context) => {  
+  const SEPOLIA_ETHERSCAN_URL_BASE = 'https://sepolia.etherscan.io';
+  return c.json({
+    tx_base: `${SEPOLIA_ETHERSCAN_URL_BASE}/tx/`,
+    token_base: `${SEPOLIA_ETHERSCAN_URL_BASE}/nft/${c.env.V4P_CONTRACT}/`
+  });
+});
+
 route.get('/_env', async (c: Context) => {  
   if (c.get('user').role !== 'admin') {
     throw new HTTPException(403, {message: 'Not allowed'});

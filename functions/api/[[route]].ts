@@ -17,6 +17,7 @@ const API_PREFIX = '/api';
 const PUBLIC_APIS = [
   ['GET', '/api',],
   ['GET', '/api/photo/*',],
+  ['GET', '/api/config/urls',],
   ['POST', '/api/account/signin',],
   ['POST', '/api/account/signup',],
 ] as SecRequest[];
