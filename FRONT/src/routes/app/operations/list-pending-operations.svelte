@@ -155,7 +155,7 @@
 	};
 
 	const execOperation = async () => {
-		if (!selectedOperation) {
+		if (!selectedOperation || executingOperation) {
 			return;
 		}
 		if (!acceptExecution) {

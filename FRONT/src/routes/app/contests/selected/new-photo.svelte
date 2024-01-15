@@ -135,6 +135,9 @@
 
 	const handleSubmit = async (e: SubmitEvent) => {
 		e.preventDefault();
+		if (creatingNFT) {
+			return;
+		}
 		const form = e.target as HTMLFormElement;
 		if (!$photoKey) {
 			await preparePhoto(form);
