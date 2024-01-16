@@ -60,7 +60,7 @@
           <Tooltip>{op.title}</Tooltip>
         </div>
       </TableBodyCell>
-      <TableBodyCell>{op.message}</TableBodyCell>
+      <TableBodyCell><div class="max-w-xl whitespace-break-spaces">{op.message}</div></TableBodyCell>
       <TableBodyCell>{localDateTime(op.executionTimestamp)}</TableBodyCell>
     </TableBodyRow>
     {/each}
@@ -91,7 +91,8 @@
           <Tooltip color="gray">{op.title}</Tooltip>
         </div>
       </TableBodyCell>
-      <TableBodyCell><span class="text-gray-400">{op.message}</span></TableBodyCell>
+      
+      <TableBodyCell><div class="max-w-xl whitespace-break-spaces text-gray-400">{op.message}</div></TableBodyCell>
       <TableBodyCell><span class="text-gray-400">{localDateTime(op.rejectionTimestamp)}</span></TableBodyCell>
       <TableBodyCell><span class="text-gray-400">{op.rejectionReason || ''}</span></TableBodyCell>
     </TableBodyRow>
