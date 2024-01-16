@@ -26,7 +26,9 @@ export const getPhoto = async (c: Context, photoKey: string) : Promise<Response>
     const headers = new Headers();
     img.writeHttpMetadata(headers);
     headers.set('Content-Length', img.size.toString());
-    
+    // Añadir cache
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+        
     return new Response(img.body, {headers});    
 }
 
