@@ -3,13 +3,7 @@ import { Bindings } from "@lib/domain/env";
 import { contest, operations } from "@lib/domain/schema";
 import { createBuyOperations, drawPhotoWinner } from "@lib/services/contest-service";
 import { prepareActionsForRejectedOperation } from "@lib/services/operation-service";
-import { and, eq, gt, lt, ne, sql } from "drizzle-orm";
-
-type ScheduledEvent = {
-  scheduledTime: Date;
-  type: string;
-  cron: string;
-};
+import { eq, ne, sql } from "drizzle-orm";
 
 /**
  * Comprueba si los concursos han finalizado para elegir al ganador y cambiarlos de estado
@@ -30,7 +24,7 @@ export const finishedContestsChecker = async (env: Bindings) => {
       const results = await drawPhotoWinner(env, c.id);      
       if (results) {
         console.log(`Contest "${c.title}" (ID: ${c.id}) results: {winner photo = ${results.winnerPhotoId}, winner voter = ${results.winnerVoterId} }`);
-        createBuyOperations(env, results);        
+        await createBuyOperations(env, results);        
       } else {
         console.log(`Contest ${c.id} - ${c.title} had no winner!`);
       }
@@ -80,7 +74,7 @@ export const expiredOperationsChecker = async (env: Bindings) => {
         rejectionReason: operations.rejectionReason
       });
       Object.assign(o, updatedFields);
-      prepareActionsForRejectedOperation(env, o);
+      await prepareActionsForRejectedOperation(env, o);
     }
   }
 };
