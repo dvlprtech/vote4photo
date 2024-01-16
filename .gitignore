@@ -5,7 +5,7 @@ dist
 /*.sql 
 
 # Change them to your taste:
-wrangler*.toml
+/wrangler*.toml
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
