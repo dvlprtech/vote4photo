@@ -14,6 +14,6 @@ export default {
         console.log('ENV: ', env); 
         ctx.waitUntil(initContestsChecker(env));        
         ctx.waitUntil(finishedContestsChecker(env));
-        //ctx.waitUntil(expiredOperationsChecker(env));
+        ctx.waitUntil(expiredOperationsChecker(env));
     },
   };
