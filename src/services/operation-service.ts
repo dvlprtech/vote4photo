@@ -296,7 +296,8 @@ export const executeWithSignature = async (c: Context, operationId: number, sign
         userId: operation.destinationUserId,
         ownerSince: sql`CURRENT_TIMESTAMP`,
     }).where(eq(userPhoto.id, photoId));
-
+    operation.status = executedOperation.status;
+    operation.executionTimestamp = executedOperation.executionTimestamp;
     await _prepareNextOperations(c, operation);
     return executedOperation;
 }
@@ -330,15 +331,16 @@ export const executeOperation = async (c: Context, operationId: number, userId: 
         throw new HTTPException(400, {message: 'Operación caducada'});
     }
 
-    const execution = await db.update(operations).set({
+    const [executedOperation] = await db.update(operations).set({
         status: 'executed',
         executionTimestamp: sql`CURRENT_TIMESTAMP`
-    }).where(eq(operations.id, operationId)).returning({status: operations.status});    
-    
+    }).where(eq(operations.id, operationId)).returning({status: operations.status, executionTimestamp: operations.executionTimestamp});    
+    operation.status = executedOperation.status;
+    operation.executionTimestamp = executedOperation.executionTimestamp;
     await _prepareNextOperations(c, operation);
     return {
         id: operationId,
-        status: execution[0].status!
+        status: executedOperation.status!
     };
 }
 
