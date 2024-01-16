@@ -415,9 +415,11 @@ async function _prepareNotificationOperations(c: Context, operation: OperationTy
         const [photo] = await db.select({
             title: userPhoto.title,
             tokenId: userPhoto.tokenId,
-            salePrice: contestPhoto.salePrice
+            salePrice: contestPhoto.salePrice,
+            totalPrize: contest.totalPrize,
         }).from(userPhoto)
         .innerJoin(contestPhoto, eq(contestPhoto.photoId, userPhoto.id))
+        .innerJoin(contest, eq(contest.id, contestPhoto.contestId))
         .where(eq(contestPhoto.id, operation.contestPhotoId!));
         if (operation.type === 'accept_prize') {
             // Si el propietario acepta el premio, enviamos una notificación al usuario que lo compró
@@ -433,7 +435,7 @@ async function _prepareNotificationOperations(c: Context, operation: OperationTy
                 userId: operation.userId!,
                 contestPhotoId: operation.contestPhotoId!,
                 type: 'notification',
-                message: `Ya tienes disponible el premio del concurso (${photo.salePrice} €) en los fondos de tu cuenta!!`
+                message: `Ya tienes disponible el premio del concurso (${photo.totalPrize} €) en los fondos de tu cuenta!!`
             });            
         } else if (operation.type === 'sell') {
             // Si el propietario vende la foto, enviamos una notificación al usuario que la compró
