@@ -302,6 +302,7 @@ export const drawPhotoWinner = async (env: Bindings, contestId: number): Promise
     const [{ maxVotes }] = await db.select({
         maxVotes: sql<number>`max(votes)`.as('maxVotes')
     }).from(contestPhoto).where(eq(contestPhoto.contestId, contestId));
+    
     if (!maxVotes) {
         return null;
     }
@@ -357,8 +358,9 @@ export const drawPhotoWinner = async (env: Bindings, contestId: number): Promise
         userDrawWinningId: winnerVoterId
     }).where(eq(contest.id, contestId));
     if (winnerVoterId === ownerId) {
+        console.log('El ganador de la foto es el propietario', ownerId);
         // Puede pasar que si alguien vota por su foto acabe ganándola
-        createOperation(env, {
+        await createOperation(env, {
             userId: ownerId!,
             destinationUserId: winnerVoterId,
             destinationAccount,
@@ -370,7 +372,8 @@ export const drawPhotoWinner = async (env: Bindings, contestId: number): Promise
             funds: sql`funds + ${prize}`
         }).where(eq(user.id, ownerId));
     } else {
-        createOperation(env, {
+        console.log('El ganador de la foto es', winnerVoterId, ', creamos operación de accept_prize para el propietario', ownerId);
+        await createOperation(env, {
             userId: ownerId!,
             destinationUserId: winnerVoterId,
             destinationAccount,
@@ -434,7 +437,7 @@ export const createBuyOperations = async (env: Bindings, resultContest: ResultCo
         if (winnerVoterId === 0) {
             return;
         }
-        createOperation(env, {
+        await createOperation(env, {
             userId: winnerVoterId!,
             destinationUserId: votedPhoto.ownerId!,
             contestPhotoId: votedPhoto.contestPhotoId!,
