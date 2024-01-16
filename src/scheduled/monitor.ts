@@ -3,7 +3,7 @@ import { Bindings } from "@lib/domain/env";
 import { contest, operations } from "@lib/domain/schema";
 import { createBuyOperations, drawPhotoWinner } from "@lib/services/contest-service";
 import { prepareActionsForRejectedOperation } from "@lib/services/operation-service";
-import { and, eq, lt, ne, sql } from "drizzle-orm";
+import { and, eq, gt, lt, ne, sql } from "drizzle-orm";
 
 type ScheduledEvent = {
   scheduledTime: Date;
@@ -18,8 +18,10 @@ type ScheduledEvent = {
 export const finishedContestsChecker = async (env: Bindings) => {
   console.log('---> finishedContestsChecker');
   const db = getConnection(env.DB);
-  const expiredContests = await db.select().from(contest)
-    .where(and(ne(contest.status, 'finished'), lt(contest.endTimestamp, new Date())));
+  const notFinishedContests = await db.select().from(contest)
+    .where(ne(contest.status, 'finished'));
+  const now = new Date();
+  const expiredContests = notFinishedContests.filter(c => c.endTimestamp < now);
   if (expiredContests.length > 0) {
     console.log(`There are ${expiredContests.length} new finished contests!`);
     for (const c of expiredContests) {
@@ -43,8 +45,9 @@ export const finishedContestsChecker = async (env: Bindings) => {
 export const initContestsChecker = async (env: Bindings) => {
   console.log('---> initContestsChecker');
   const db = getConnection(env.DB);
-  const contestsToInit = await db.select().from(contest)
-    .where(and(eq(contest.status, 'pending'), lt(contest.initTimestamp, sql`CURRENT_TIMESTAMP`)));
+  const pendingContests = await db.select().from(contest).where(eq(contest.status, 'pending'));
+  const now = new Date();
+  const contestsToInit = pendingContests.filter(c => c.initTimestamp < now);
   if (contestsToInit.length > 0) {
     console.log(`There are ${contestsToInit.length} contests ready to init!`);
     for (const c of contestsToInit) {
@@ -60,8 +63,9 @@ export const initContestsChecker = async (env: Bindings) => {
 export const expiredOperationsChecker = async (env: Bindings) => {
   console.log('---> expiredOperationsChecker');
   const db = getConnection(env.DB);
-  const expiredOperations = await db.select().from(operations)
-    .where(and(ne(operations.status, 'pending'), lt(operations.expirationTimestamp, sql`CURRENT_TIMESTAMP`)));
+  const pendingOperations = await db.select().from(operations).where(eq(operations.status, 'pending'));
+  const now = new Date();
+  const expiredOperations = pendingOperations.filter(o => o.expirationTimestamp < now);
   if (expiredOperations.length > 0) {
     console.log(`There are ${expiredOperations.length} expired operations!`);
     for (const o of expiredOperations) {

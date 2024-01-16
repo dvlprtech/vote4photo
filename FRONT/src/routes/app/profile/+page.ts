@@ -6,12 +6,15 @@ import type { AccountData } from '$lib/domain/account';
 import { get } from 'svelte/store';
 import { userId } from '$lib/store/session-store';
 import { loadProfile } from '$lib/store/profile-store';
+import { browser } from '$app/environment';
 
 
 type VotePackPrice = {amount: number, price: number};
 type SelectOpt = {value: number | string, name: string};
 type PageParams = {profile: AccountData, votesPricing: VotePackPrice[], priceList: SelectOpt[]};
 export const load = async ({ params }: Parameters<PageLoad>[0]) : Promise<PageParams> => {
+    if (!browser) 
+        return {} as PageParams;
     const accountId =get(userId);
     if (accountId) {
         const data = {} as PageParams;        

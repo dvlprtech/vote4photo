@@ -56,7 +56,7 @@
       </TableBodyCell>
       <TableBodyCell>
         <div class="w-10 h-10">
-          <Img src2="http://localhost:5173/images/logo.svg" src={`/api/photo/${op.photoKey}`} class="w-full h-auto" />
+          <Img src={`/api/photo/${op.photoKey}`} class="w-full h-auto" />
           <Tooltip>{op.title}</Tooltip>
         </div>
       </TableBodyCell>

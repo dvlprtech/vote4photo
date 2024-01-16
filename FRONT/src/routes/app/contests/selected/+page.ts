@@ -4,12 +4,13 @@ import { fetchProxy } from '$lib/utils/fetch-utils';
 import { get } from 'svelte/store';
 import { currentContestId } from '$lib/store/contest-store';
 import { goto } from '$app/navigation';
+import { browser } from '$app/environment';
 
 export const load = async ({  }) => {
 	const contestId = get(currentContestId);
     console.log('contestId', contestId);
     if (!contestId) {
-        goto('/app/contests');
+        browser && goto('/app/contests');
         return;
     }
         
